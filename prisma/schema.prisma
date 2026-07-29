@@ -1,0 +1,119 @@
+// Prisma schema for tfl-travel-app
+// Run `npm run prisma:migrate` after setting DATABASE_URL in .env
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// A TfL line, e.g. Circle, Victoria, Central.
+// Seeded once from /Line/Mode/tube,dlr,overground,elizabeth-line
+model Line {
+  id        String   @id // TfL's own line id, e.g. "circle"
+  name      String // Display name, e.g. "Circle"
+  modeName  String // "tube" | "dlr" | "overground" | "elizabeth-line"
+  colourHex String // For the coloured line icon in the UI
+
+  statusEvents LineStatusEvent[]
+  favourites   Favourite[]        @relation("LineFavourites")
+
+  @@index([modeName])
+}
+
+// One row per distinct status the line has held.
+// isActive = true means this is the current live status (there can be
+// more than one active row at once, since TfL sometimes reports two
+// simultaneous statuses for a line, e.g. Part Suspended + Special Service
+// on different branches).
+model LineStatusEvent {
+  id                    String   @id @default(cuid())
+  lineId                String
+  line                  Line     @relation(fields: [lineId], references: [id])
+  statusSeverity        Int // 0 (worst) - 10 (Good Service), from TfL
+  statusDescription     String // e.g. "Minor Delays"
+  reason                String? // Free text from TfL, e.g. "due to train cancellations"
+  branchLabel           String? // e.g. "Hainault via Newbury Park" - only populated when TfL provides it
+  isActive              Boolean  @default(true)
+  startedAt             DateTime @default(now())
+  endedAt               DateTime?
+  notificationSent      Boolean  @default(false)
+
+  affectedStations AffectedStation[]
+  notifications    Notification[]
+
+  @@index([lineId, isActive])
+}
+
+// Stations named inside a status event's disruption.affectedStops.
+// TfL doesn't expose station closures as their own entity, so we
+// derive "station is down" from this join.
+model AffectedStation {
+  id             String           @id @default(cuid())
+  statusEventId  String
+  statusEvent    LineStatusEvent  @relation(fields: [statusEventId], references: [id])
+  stationName    String
+  naptanId       String?
+
+  @@index([statusEventId])
+  @@index([naptanId])
+}
+
+// Minimal user record. Swap for a real auth provider (e.g. Supabase auth,
+// Clerk) later — this table just needs to exist so favourites have
+// somewhere to point.
+model User {
+  id        String       @id @default(cuid())
+  email     String       @unique
+  createdAt DateTime     @default(now())
+
+  favourites    Favourite[]
+  notifications Notification[]
+}
+
+// A user's favourited line or station. favouriteType + refId is a
+// polymorphic-ish pointer rather than two nullable FKs, so we can favourite
+// stations even though they aren't a first-class TfL entity in this schema.
+model Favourite {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  favouriteType FavouriteType
+  refId         String // Line.id when type=LINE, station naptanId/name when type=STATION
+  refLabel      String // Display name, cached so we don't need a join for list views
+  createdAt     DateTime @default(now())
+
+  line   Line?  @relation("LineFavourites", fields: [lineRefId], references: [id])
+  lineRefId String?
+
+  @@unique([userId, favouriteType, refId])
+  @@index([userId])
+}
+
+enum FavouriteType {
+  LINE
+  STATION
+}
+
+// One row per notification actually delivered to a user, created only for
+// users who favourited the affected line/station. The frontend polls
+// GET /notifications (or later, subscribes via Supabase realtime) to show
+// these as in-app toasts; when push is added, a Web Push send happens
+// alongside this insert rather than instead of it, so there's always an
+// in-app history.
+model Notification {
+  id                String          @id @default(cuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+  lineStatusEventId String
+  lineStatusEvent   LineStatusEvent @relation(fields: [lineStatusEventId], references: [id])
+  message           String
+  colourHex         String
+  read              Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+
+  @@index([userId, read])
+}
