@@ -1,15 +1,19 @@
-import cron from "node-cron";
 import { prisma } from "../lib/prisma";
 import { fetchLineStatuses, normaliseLineStatuses } from "./tflClient";
 import type { NormalisedLineStatus } from "../types/tfl";
 import { notifyStatusChange } from "./notificationService";
 
-// A key that identifies one (line, status, reason) triple, so simultaneous
-// disruptions on the same line with the same severity label (e.g. two
-// branches both "Minor Delays" for different reasons) are tracked as
-// distinct events rather than colliding into one.
-function statusKey(s: Pick<NormalisedLineStatus, "lineId" | "statusDescription" | "reason">): string {
-  return `${s.lineId}::${s.statusDescription}::${s.reason ?? ""}`;
+// A key that identifies one (line, status, distinguishing-detail) triple,
+// so simultaneous disruptions on the same line with the same severity
+// label (e.g. two branches both "Minor Delays" for different reasons) are
+// tracked as distinct events rather than colliding. Prefers the structured
+// branchLabel over the free-text reason where available, since reason
+// wording can vary slightly between polls for the same underlying
+// disruption in a way that would otherwise look like a "new" event.
+function statusKey(
+  s: Pick<NormalisedLineStatus, "lineId" | "statusDescription" | "reason" | "branchLabel">
+): string {
+  return `${s.lineId}::${s.statusDescription}::${s.branchLabel ?? s.reason ?? ""}`;
 }
 
 export async function pollOnce(): Promise<void> {
@@ -26,7 +30,15 @@ export async function pollOnce(): Promise<void> {
   });
 
   const activeByKey = new Map(
-    activeEvents.map((e) => [statusKey({ lineId: e.lineId, statusDescription: e.statusDescription }), e])
+    activeEvents.map((e) => [
+      statusKey({
+        lineId: e.lineId,
+        statusDescription: e.statusDescription,
+        reason: e.reason,
+        branchLabel: e.branchLabel,
+      }),
+      e,
+    ])
   );
   const currentByKey = new Map(current.map((s) => [statusKey(s), s]));
 
@@ -110,13 +122,32 @@ const LINE_COLOURS: Record<string, string> = {
 
 // Run as a standalone process: `npm run poll`
 if (require.main === module) {
-  const INTERVAL_CRON = process.env.POLL_CRON ?? "*/90 * * * * *"; // every 90s
+  const INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS ?? 90_000);
 
-  pollOnce().catch((err) => console.error("[poll] initial run failed", err));
+  // Guards against overlapping runs: if a poll is still writing to the DB
+  // when the next tick fires (e.g. a slow network response, or a bad
+  // interval value), we skip that tick rather than starting a second
+  // pollOnce() concurrently — running two at once was exactly what caused
+  // duplicate notifications earlier.
+  let isPolling = false;
 
-  cron.schedule(INTERVAL_CRON, () => {
-    pollOnce().catch((err) => console.error("[poll] run failed", err));
-  });
+  const runPoll = async () => {
+    if (isPolling) {
+      console.warn("[poll] previous run still in progress, skipping this tick");
+      return;
+    }
+    isPolling = true;
+    try {
+      await pollOnce();
+    } catch (err) {
+      console.error("[poll] run failed", err);
+    } finally {
+      isPolling = false;
+    }
+  };
 
-  console.log(`[poll] scheduled with cron "${INTERVAL_CRON}"`);
+  runPoll();
+  setInterval(runPoll, INTERVAL_MS);
+
+  console.log(`[poll] scheduled every ${INTERVAL_MS}ms`);
 }

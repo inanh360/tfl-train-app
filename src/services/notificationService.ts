@@ -6,6 +6,16 @@ type EventWithRelations = LineStatusEvent & {
   affectedStations: AffectedStation[];
 };
 
+// TfL's affectedRoutes name often reads like "Epping Underground Station -
+// West Ruislip Underground Station" — strip the repeated station-type
+// suffixes so it displays as "Epping - West Ruislip".
+function cleanBranchLabel(raw: string): string {
+  return raw
+    .split(" - ")
+    .map((part) => part.replace(/\s*(Underground|Rail|DLR)?\s*Station$/i, "").trim())
+    .join(" - ");
+}
+
 // Some TfL line names already end in "line" (lowercase, e.g. "Elizabeth
 // line"), so blindly appending " Line" produces "Elizabeth line Line".
 // This normalises to a consistent "X Line" display form regardless of how
@@ -27,7 +37,9 @@ function displayLineName(rawName: string): string {
 // to the plain line name when it's missing.
 function buildMessage(event: EventWithRelations): string {
   const baseLineName = displayLineName(event.line.name);
-  const lineName = event.branchLabel ? `${baseLineName} (${event.branchLabel})` : baseLineName;
+  const lineName = event.branchLabel
+    ? `${baseLineName} (${cleanBranchLabel(event.branchLabel)})`
+    : baseLineName;
 
   if (event.affectedStations.length > 0) {
     const stationList = event.affectedStations.map((s) => s.stationName).join(", ");
