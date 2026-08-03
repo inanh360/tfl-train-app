@@ -1,0 +1,88 @@
+:root {
+  /* Palette: black background, green accent (Plumplot-inspired), off-white
+     for reading text. Line colours come from the API per-line, used only
+     as small functional swatches, never as page theming. */
+  --bg: #0a0c0a;
+  --bg-raised: #12160f;
+  --bg-raised-hover: #181e15;
+  --border: #263021;
+  --primary: #35d074;
+  --primary-dim: #1d7a44;
+  --text: #e9ede6;
+  --text-dim: #8b9488;
+  --red: #e0483e;
+  --green: #35d074;
+  --warning: #e0b13e;
+
+  --font-display: "IBM Plex Mono", ui-monospace, monospace;
+  --font-body: "IBM Plex Sans", -apple-system, sans-serif;
+
+  --radius: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+body {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Blinking colon, like a digital departure clock. Used sparingly, once
+   per page at most. */
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+/* Pulse for actively-disrupted status dots — draws the eye without being
+   a full flashing-alarm effect. */
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+    opacity: 0.6;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
