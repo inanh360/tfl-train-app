@@ -6,8 +6,8 @@ __turbopack_context__.s([
     "api",
     ()=>api
 ]);
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-const USER_ID = process.env.NEXT_PUBLIC_USER_ID ?? "";
+const API_URL = ("TURBOPACK compile-time value", "http://localhost:4000") ?? "http://localhost:4000";
+const USER_ID = ("TURBOPACK compile-time value", "cms6rbspw00003iy1jtyao2y5") ?? "";
 async function request(path, options = {}) {
     const res = await fetch(`${API_URL}${path}`, {
         ...options,

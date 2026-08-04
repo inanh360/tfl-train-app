@@ -1,5 +1,15 @@
 {
   "app": {
+    "[project]/frontend/app/_not-found/page": [
+      "static/media/effe91970fc4db64-s.p.0oace-s_gkfks.woff2",
+      "static/media/23b7a97ae3b5c134-s.p.226pwps5o-gq_.woff2",
+      "static/media/03fc1b4a8d284b5e-s.p.0wiir8udbzjvx.woff2"
+    ],
+    "[project]/frontend/app/journey/page": [
+      "static/media/effe91970fc4db64-s.p.0oace-s_gkfks.woff2",
+      "static/media/23b7a97ae3b5c134-s.p.226pwps5o-gq_.woff2",
+      "static/media/03fc1b4a8d284b5e-s.p.0wiir8udbzjvx.woff2"
+    ],
     "[project]/frontend/app/page": [
       "static/media/effe91970fc4db64-s.p.0oace-s_gkfks.woff2",
       "static/media/23b7a97ae3b5c134-s.p.226pwps5o-gq_.woff2",
