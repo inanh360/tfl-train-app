@@ -1,17 +1,10 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
+import { requireAuth } from "../middleware/requireAuth";
 
 export const notificationsRouter = Router();
 
-notificationsRouter.use((req, res, next) => {
-  const userId = req.header("x-user-id");
-  if (!userId) {
-    res.status(401).json({ error: "Missing x-user-id header (temporary auth stand-in)" });
-    return;
-  }
-  (req as any).userId = userId;
-  next();
-});
+notificationsRouter.use(requireAuth);
 
 // GET /notifications — the frontend polls this (React Query refetchInterval)
 // to show new in-app alerts. Swap for a push subscription later without
@@ -21,7 +14,7 @@ notificationsRouter.get("/", async (req, res) => {
 
   const notifications = await prisma.notification.findMany({
     where: {
-      userId: (req as any).userId,
+      userId: req.userId!,
       ...(unreadOnly ? { read: false } : {}),
     },
     orderBy: { createdAt: "desc" },
@@ -34,7 +27,7 @@ notificationsRouter.get("/", async (req, res) => {
 notificationsRouter.post("/:id/read", async (req, res) => {
   const notification = await prisma.notification.findUnique({ where: { id: req.params.id } });
 
-  if (!notification || notification.userId !== (req as any).userId) {
+  if (!notification || notification.userId !== req.userId) {
     res.status(404).json({ error: "Notification not found" });
     return;
   }

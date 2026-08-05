@@ -1,24 +1,14 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
+import { requireAuth } from "../middleware/requireAuth";
 
 export const favouritesRouter = Router();
 
-// All routes here assume req.userId has been set by an auth middleware
-// upstream. Swap in real auth (e.g. Supabase JWT verification) before
-// shipping — for now this reads a header so the API is testable standalone.
-favouritesRouter.use((req, res, next) => {
-  const userId = req.header("x-user-id");
-  if (!userId) {
-    res.status(401).json({ error: "Missing x-user-id header (temporary auth stand-in)" });
-    return;
-  }
-  (req as any).userId = userId;
-  next();
-});
+favouritesRouter.use(requireAuth);
 
 favouritesRouter.get("/", async (req, res) => {
   const favourites = await prisma.favourite.findMany({
-    where: { userId: (req as any).userId },
+    where: { userId: req.userId! },
     orderBy: { createdAt: "desc" },
   });
   res.json(favourites);
@@ -35,14 +25,14 @@ favouritesRouter.post("/", async (req, res) => {
   const favourite = await prisma.favourite.upsert({
     where: {
       userId_favouriteType_refId: {
-        userId: (req as any).userId,
+        userId: req.userId!,
         favouriteType,
         refId,
       },
     },
     update: {},
     create: {
-      userId: (req as any).userId,
+      userId: req.userId!,
       favouriteType,
       refId,
       refLabel,
@@ -56,7 +46,7 @@ favouritesRouter.post("/", async (req, res) => {
 favouritesRouter.delete("/:id", async (req, res) => {
   const favourite = await prisma.favourite.findUnique({ where: { id: req.params.id } });
 
-  if (!favourite || favourite.userId !== (req as any).userId) {
+  if (!favourite || favourite.userId !== req.userId) {
     res.status(404).json({ error: "Favourite not found" });
     return;
   }

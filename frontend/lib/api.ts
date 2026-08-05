@@ -1,12 +1,17 @@
+import { supabase } from "./supabaseClient";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-const USER_ID = process.env.NEXT_PUBLIC_USER_ID ?? "";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "x-user-id": USER_ID,
+      ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
       ...options.headers,
     },
     cache: "no-store",

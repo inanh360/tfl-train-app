@@ -46,6 +46,57 @@ export interface TflLine {
   lineStatuses: TflLineStatus[];
 }
 
+// --- StopPoint search ---
+
+export interface TflStopPointMatch {
+  id: string;
+  name: string;
+  modes: string[];
+  lat?: number;
+  lon?: number;
+}
+
+export interface TflStopPointSearchResponse {
+  query: string;
+  total: number;
+  matches: TflStopPointMatch[];
+}
+
+// --- Journey planner (minimal slice we actually use) ---
+
+export interface TflJourneyStopPoint {
+  naptanId: string;
+  commonName: string;
+}
+
+export interface TflJourneyLine {
+  id: string;
+  name: string;
+}
+
+export interface TflJourneyLeg {
+  duration: number; // minutes
+  instruction: { summary: string };
+  departureTime: string;
+  arrivalTime: string;
+  departurePoint: TflJourneyStopPoint;
+  arrivalPoint: TflJourneyStopPoint;
+  mode: { id: string; name: string };
+  isDisrupted: boolean;
+  routeOptions: { lineIdentifier?: TflJourneyLine }[];
+}
+
+export interface TflJourney {
+  startDateTime: string;
+  arrivalDateTime: string;
+  duration: number; // minutes
+  legs: TflJourneyLeg[];
+}
+
+export interface TflJourneyResult {
+  journeys: TflJourney[];
+}
+
 // Normalised shape we actually work with internally, one row per
 // (line, status) pair — flattens the array-of-statuses-per-line quirk
 // mentioned in the TfL forum thread into something easy to diff against DB rows.

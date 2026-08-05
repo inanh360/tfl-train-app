@@ -3,10 +3,6 @@
 import { prisma } from "./lib/prisma";
 
 async function main() {
-  console.log("\n=== USERS ===");
-  const users = await prisma.user.findMany();
-  console.log(users);
-
   console.log("\n=== FAVOURITES ===");
   const favourites = await prisma.favourite.findMany();
   console.log(favourites);

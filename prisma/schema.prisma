@@ -62,25 +62,17 @@ model AffectedStation {
   @@index([naptanId])
 }
 
-// Minimal user record. Swap for a real auth provider (e.g. Supabase auth,
-// Clerk) later — this table just needs to exist so favourites have
-// somewhere to point.
-model User {
-  id        String       @id @default(cuid())
-  email     String       @unique
-  createdAt DateTime     @default(now())
-
-  favourites    Favourite[]
-  notifications Notification[]
-}
+// User identity now lives in Supabase Auth (auth.users), which Prisma
+// doesn't model directly. Favourite/Notification just store the
+// Supabase-issued user id as a plain string — no local User table or FK,
+// since Supabase Auth is the source of truth for "does this user exist".
 
 // A user's favourited line or station. favouriteType + refId is a
 // polymorphic-ish pointer rather than two nullable FKs, so we can favourite
 // stations even though they aren't a first-class TfL entity in this schema.
 model Favourite {
   id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
+  userId        String // Supabase Auth user id (uuid), no local FK
   favouriteType FavouriteType
   refId         String // Line.id when type=LINE, station naptanId/name when type=STATION
   refLabel      String // Display name, cached so we don't need a join for list views
@@ -106,8 +98,7 @@ enum FavouriteType {
 // in-app history.
 model Notification {
   id                String          @id @default(cuid())
-  userId            String
-  user              User            @relation(fields: [userId], references: [id])
+  userId            String // Supabase Auth user id (uuid), no local FK
   lineStatusEventId String
   lineStatusEvent   LineStatusEvent @relation(fields: [lineStatusEventId], references: [id])
   message           String
