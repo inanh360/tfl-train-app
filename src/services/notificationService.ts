@@ -73,7 +73,6 @@ export async function notifyStatusChange(event: EventWithRelations): Promise<voi
           : []),
       ],
     },
-    include: { user: true },
   });
 
   for (const fav of interestedFavourites) {

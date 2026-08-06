@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { api, type Line, type Favourite } from "@/lib/api";
 import { StatusDot } from "@/components/StatusDot";
 import { QuickNav } from "@/components/QuickNav";
+import { useAuth } from "@/lib/auth-context";
 
 const POLL_MS = 30_000; // frontend refetches more often than the backend polls TfL, so status changes show up promptly
 
 export default function DashboardPage() {
+  const { session } = useAuth();
+  const router = useRouter();
   const [lines, setLines] = useState<Line[] | null>(null);
   const [favourites, setFavourites] = useState<Favourite[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +19,12 @@ export default function DashboardPage() {
 
   const load = useCallback(async () => {
     try {
-      const [linesData, favouritesData] = await Promise.all([api.getLines(), api.getFavourites()]);
+      // Favourites are personal — only fetch them if actually signed in, so
+      // a logged-out visitor can still see live status without a 401.
+      const [linesData, favouritesData] = await Promise.all([
+        api.getLines(),
+        session ? api.getFavourites() : Promise.resolve([]),
+      ]);
       setLines(linesData);
       setFavourites(favouritesData);
       setLastUpdated(new Date());
@@ -23,7 +32,7 @@ export default function DashboardPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load status board");
     }
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     load();
@@ -34,6 +43,10 @@ export default function DashboardPage() {
   const favouriteLineIds = new Set(favourites.filter((f) => f.favouriteType === "LINE").map((f) => f.refId));
 
   async function toggleFavourite(line: Line) {
+    if (!session) {
+      router.push("/login");
+      return;
+    }
     const existing = favourites.find((f) => f.favouriteType === "LINE" && f.refId === line.id);
     if (existing) {
       await api.removeFavourite(existing.id);

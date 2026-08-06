@@ -6,6 +6,8 @@ import { favouritesRouter } from "./routes/favourites";
 import { notificationsRouter } from "./routes/notifications";
 import { stationsRouter } from "./routes/stations";
 import { journeyRouter } from "./routes/journey";
+import { accountRouter } from "./routes/account";
+import { generalLimiter, tflProxyLimiter } from "./middleware/rateLimiters";
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
@@ -16,14 +18,16 @@ const PORT = process.env.PORT ?? 4000;
 const corsOrigin = process.env.FRONTEND_URL ?? true;
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
+app.use(generalLimiter);
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 app.use("/lines", linesRouter);
 app.use("/favourites", favouritesRouter);
 app.use("/notifications", notificationsRouter);
-app.use("/stations", stationsRouter);
-app.use("/journey", journeyRouter);
+app.use("/stations", tflProxyLimiter, stationsRouter);
+app.use("/journey", tflProxyLimiter, journeyRouter);
+app.use("/account", accountRouter);
 
 app.listen(PORT, () => {
   console.log(`API listening on http://localhost:${PORT}`);

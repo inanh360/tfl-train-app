@@ -34,14 +34,14 @@ export function HeaderNav() {
         <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>
           ◉
         </span>
-        TFL STATUS BOARD
+        LINE STATUS
       </Link>
       <nav style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 13 }}>
-        {session && (
+        <Link href="/journey" style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+          Plan journey
+        </Link>
+        {session ? (
           <>
-            <Link href="/journey" style={{ textDecoration: "none", color: "var(--text-dim)" }}>
-              Plan journey
-            </Link>
             <Link href="/favourites" style={{ textDecoration: "none", color: "var(--text-dim)" }}>
               Favourites
             </Link>
@@ -63,6 +63,10 @@ export function HeaderNav() {
               Sign out
             </button>
           </>
+        ) : (
+          <Link href="/login" style={{ textDecoration: "none", color: "var(--primary)" }}>
+            Sign in
+          </Link>
         )}
       </nav>
     </header>

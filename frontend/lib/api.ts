@@ -107,6 +107,8 @@ export const api = {
     request<Favourite>("/favourites", { method: "POST", body: JSON.stringify(body) }),
   removeFavourite: (id: string) => request<void>(`/favourites/${id}`, { method: "DELETE" }),
 
+  deleteAccount: () => request<void>("/account", { method: "DELETE" }),
+
   getNotifications: () => request<Notification[]>("/notifications"),
   markNotificationRead: (id: string) => request<void>(`/notifications/${id}/read`, { method: "POST" }),
 

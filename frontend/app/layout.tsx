@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -18,7 +19,7 @@ const bodyFont = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "TfL Status Board",
+  title: "Line Status",
   description: "Live TfL train line status, journey planning, and disruption alerts.",
 };
 
@@ -30,6 +31,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <HeaderNav />
             <AuthGuard>{children}</AuthGuard>
+            <footer style={{ marginTop: 48, paddingTop: 16, borderTop: "1px solid var(--border)", fontSize: 12 }}>
+              <Link href="/privacy" style={{ color: "var(--text-dim)", textDecoration: "none" }}>
+                Privacy policy
+              </Link>
+            </footer>
           </AuthProvider>
         </div>
       </body>

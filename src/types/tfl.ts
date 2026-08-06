@@ -97,6 +97,28 @@ export interface TflJourneyResult {
   journeys: TflJourney[];
 }
 
+// TfL returns HTTP 300 (not a real error) when a location — often a hub id
+// like Bank/Monument's "HUBBAN" — is ambiguous, along with a real JSON body
+// listing candidate matches instead of journeys. TfL's own field naming
+// isn't fully consistent across API versions, so this covers both known
+// shapes (matches vs disambiguationOptions, id vs parameterValue).
+export interface TflDisambiguationOption {
+  id?: string;
+  parameterValue?: string;
+  name: string;
+}
+
+export interface TflDisambiguationSide {
+  matches?: TflDisambiguationOption[];
+  disambiguationOptions?: TflDisambiguationOption[];
+}
+
+export interface TflDisambiguationResult {
+  journeys: TflJourney[];
+  fromLocationDisambiguation?: TflDisambiguationSide;
+  toLocationDisambiguation?: TflDisambiguationSide;
+}
+
 // Normalised shape we actually work with internally, one row per
 // (line, status) pair — flattens the array-of-statuses-per-line quirk
 // mentioned in the TfL forum thread into something easy to diff against DB rows.

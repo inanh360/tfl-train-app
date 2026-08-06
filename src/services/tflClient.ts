@@ -4,6 +4,8 @@ import type {
   TflStopPointSearchResponse,
   TflStopPointMatch,
   TflJourneyResult,
+  TflDisambiguationResult,
+  TflDisambiguationSide,
 } from "../types/tfl";
 
 const TFL_BASE_URL = "https://api.tfl.gov.uk";
@@ -59,19 +61,100 @@ export async function searchStations(query: string): Promise<TflStopPointMatch[]
   return data.matches.filter((m) => m.modes.some((mode) => (TRAIN_MODES as readonly string[]).includes(mode)));
 }
 
-// Plans a journey between two StopPoint ids, restricted to train modes only
-// (per the product decision to keep journeys single-mode rather than
-// mixing in bus legs).
-export async function planJourney(fromId: string, toId: string): Promise<TflJourneyResult> {
-  const url = new URL(`${TFL_BASE_URL}/Journey/JourneyResults/${encodeURIComponent(fromId)}/to/${encodeURIComponent(toId)}`);
-  url.searchParams.set("mode", TRAIN_MODES.join(","));
+// encodeURIComponent turns commas into %2C, but TfL's own disambiguation
+// responses return lat,lon ids with the comma left literal in their URIs —
+// encoding it changes what TfL receives and can turn a valid retry into a
+// 404. This keeps normal encoding for everything except commas.
+function encodeStopId(id: string): string {
+  return encodeURIComponent(id).replace(/%2C/g, ",");
+}
+
+// TfL's StopPoint Search legitimately returns "hub" ids (e.g. "HUBBAN" for
+// Bank/Monument, combining multiple physical platforms/lines under one
+// interchange id) — but the Journey Planner endpoint doesn't reliably
+// accept those same hub ids as a location parameter, instead falling back
+// to fuzzy text-matching against unrelated place names. Resolving to the
+// hub's coordinates first sidesteps this: TfL's own disambiguation
+// responses confirm lat,lon pairs are accepted reliably.
+async function resolveJourneyParam(id: string): Promise<string> {
+  if (!id.startsWith("HUB")) {
+    return id;
+  }
+
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(id)}`);
   appendAppKey(url);
 
   const res = await fetch(url.toString());
   if (!res.ok) {
+    // If the hub lookup itself fails, fall back to the original id rather
+    // than blocking the whole request — worst case we're back to the
+    // original 300/fuzzy-match behaviour, not a hard failure.
+    return id;
+  }
+
+  const stopPoint = (await res.json()) as { lat?: number; lon?: number };
+  if (typeof stopPoint.lat !== "number" || typeof stopPoint.lon !== "number") {
+    return id;
+  }
+
+  return `${stopPoint.lat},${stopPoint.lon}`;
+}
+
+async function fetchJourney(fromId: string, toId: string): Promise<{ status: number; body: TflDisambiguationResult }> {
+  const url = new URL(`${TFL_BASE_URL}/Journey/JourneyResults/${encodeStopId(fromId)}/to/${encodeStopId(toId)}`);
+  url.searchParams.set("mode", TRAIN_MODES.join(","));
+  appendAppKey(url);
+
+  const res = await fetch(url.toString());
+  // TfL uses 300 as a real, parseable response (disambiguation options),
+  // not a failure — only treat genuine error statuses as fatal here.
+  if (!res.ok && res.status !== 300) {
     throw new Error(`TfL journey planner request failed: ${res.status} ${res.statusText}`);
   }
-  return (await res.json()) as TflJourneyResult;
+  const body = (await res.json()) as TflDisambiguationResult;
+  return { status: res.status, body };
+}
+
+// Reads the first candidate id out of whichever shape TfL actually sent
+// back — the array key (matches vs disambiguationOptions) and the id
+// field name (id vs parameterValue) both vary in practice.
+function firstDisambiguationId(side: TflDisambiguationSide | undefined): string | undefined {
+  const options = side?.matches ?? side?.disambiguationOptions ?? [];
+  const first = options[0];
+  return first?.id ?? first?.parameterValue;
+}
+
+// Plans a journey between two StopPoint ids, restricted to train modes only
+// (per the product decision to keep journeys single-mode rather than
+// mixing in bus legs).
+//
+// TfL sometimes responds with HTTP 300 even for a specific, valid id —
+// notably hub ids like "HUBBAN" (Bank/Monument) that cover more than one
+// physical station — along with a real body listing disambiguation
+// options instead of journeys. Rather than surface that as an error, this
+// picks the top-ranked match TfL offers for whichever side is ambiguous
+// and retries once with the resolved id.
+export async function planJourney(fromId: string, toId: string): Promise<TflJourneyResult> {
+  const [resolvedFromId, resolvedToId] = await Promise.all([resolveJourneyParam(fromId), resolveJourneyParam(toId)]);
+  const first = await fetchJourney(resolvedFromId, resolvedToId);
+
+  if (first.status !== 300) {
+    return { journeys: first.body.journeys };
+  }
+
+  console.log("[journey] TfL returned 300, raw disambiguation body:", JSON.stringify(first.body));
+
+  const resolvedFrom = firstDisambiguationId(first.body.fromLocationDisambiguation) ?? resolvedFromId;
+  const resolvedTo = firstDisambiguationId(first.body.toLocationDisambiguation) ?? resolvedToId;
+
+  if (resolvedFrom === resolvedFromId && resolvedTo === resolvedToId) {
+    // TfL gave us a 300 but no usable disambiguation options to resolve it
+    // with — nothing more we can do automatically.
+    throw new Error("TfL journey planner returned an ambiguous location with no resolvable match");
+  }
+
+  const retry = await fetchJourney(resolvedFrom, resolvedTo);
+  return { journeys: retry.body.journeys };
 }
 
 // Flattens TfL's nested shape into one row per (line, status).

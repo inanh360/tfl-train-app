@@ -28,13 +28,22 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
 
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  // Express 4 does not automatically catch a rejected promise thrown
+  // inside an async middleware — without this try/catch, a network issue
+  // or misconfiguration reaching Supabase would kill the connection with
+  // no response at all, rather than a proper error the client can handle.
+  try {
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
 
-  if (error || !data.user) {
-    res.status(401).json({ error: "Invalid or expired session" });
-    return;
+    if (error || !data.user) {
+      res.status(401).json({ error: "Invalid or expired session" });
+      return;
+    }
+
+    req.userId = data.user.id;
+    next();
+  } catch (err) {
+    console.error("[requireAuth] failed to verify token", err);
+    res.status(502).json({ error: "Failed to verify session" });
   }
-
-  req.userId = data.user.id;
-  next();
 }

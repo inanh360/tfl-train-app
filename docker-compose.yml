@@ -1,0 +1,42 @@
+# Run everything with: docker compose up --build
+#
+# Reads variables from a .env file in this same folder (standard Compose
+# behaviour) — that's your existing backend .env, plus two extra
+# NEXT_PUBLIC_* entries added for the frontend build (see note below).
+
+services:
+  api:
+    build: .
+    image: tfl-backend:latest
+    command: ["node", "dist/index.js"]
+    ports:
+      - "4000:4000"
+    env_file: .env
+    restart: unless-stopped
+
+  poller:
+    build: .
+    image: tfl-backend:latest # same image as api, just a different command — Compose builds it once and reuses it
+    command: ["node", "dist/services/pollingService.js"]
+    env_file: .env
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # This is read by the browser (it's a NEXT_PUBLIC_ var, baked into
+        # the client JS), not by one container talking to another — so
+        # localhost is correct here, since the api port is published to
+        # your host machine below.
+        NEXT_PUBLIC_API_URL: "http://localhost:4000"
+        NEXT_PUBLIC_SUPABASE_URL: "${NEXT_PUBLIC_SUPABASE_URL}"
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "${NEXT_PUBLIC_SUPABASE_ANON_KEY}"
+    image: tfl-frontend:latest
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - api
