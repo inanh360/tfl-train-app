@@ -20,9 +20,6 @@ export function HeaderNav() {
       <Link
         href="/"
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
           fontFamily: "var(--font-display)",
           fontWeight: 600,
           fontSize: 15,
@@ -31,9 +28,6 @@ export function HeaderNav() {
           color: "var(--primary)",
         }}
       >
-        <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>
-          ◉
-        </span>
         LINE STATUS
       </Link>
       <nav style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 13 }}>
@@ -47,6 +41,9 @@ export function HeaderNav() {
             </Link>
             <Link href="/notifications" style={{ textDecoration: "none", color: "var(--text-dim)" }}>
               Alerts
+            </Link>
+            <Link href="/account" style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+              Account
             </Link>
             <button
               onClick={signOut}

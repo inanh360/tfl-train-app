@@ -1,13 +1,13 @@
 :root {
-  /* Palette: black background, green accent (Plumplot-inspired), off-white
-     for reading text. Line colours come from the API per-line, used only
-     as small functional swatches, never as page theming. */
+  /* Palette: black background, TfL corporate blue accent, off-white for
+     reading text. Line colours come from the API per-line, used only as
+     small functional swatches, never as page theming. */
   --bg: #0a0c0a;
   --bg-raised: #12160f;
   --bg-raised-hover: #181e15;
   --border: #263021;
-  --primary: #35d074;
-  --primary-dim: #1d7a44;
+  --primary: #4d5ec2;
+  --primary-dim: #0019a8;
   --text: #e9ede6;
   --text-dim: #8b9488;
   --red: #e0483e;
