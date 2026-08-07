@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 
 export function HeaderNav() {
@@ -20,6 +21,9 @@ export function HeaderNav() {
       <Link
         href="/"
         style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
           fontFamily: "var(--font-display)",
           fontWeight: 600,
           fontSize: 15,
@@ -28,6 +32,7 @@ export function HeaderNav() {
           color: "var(--primary)",
         }}
       >
+        <Image src="/logo.png" alt="" width={18} height={18} style={{ display: "block" }} />
         LINE STATUS
       </Link>
       <nav style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 13 }}>
