@@ -78,6 +78,26 @@ export interface StationMatch {
   modes: string[];
 }
 
+export interface NearbyTrain {
+  line: string;
+  destination: string;
+  minutesAway: number;
+}
+
+export interface NearbyStation {
+  id: string;
+  name: string;
+  distanceMetres: number | null;
+  walkMinutes: number;
+  nextTrains: NearbyTrain[];
+  bestReachableMinutes: number | null;
+}
+
+export interface NearbyResult {
+  stations: NearbyStation[];
+  bestStationId: string | null;
+}
+
 export interface JourneyLeg {
   mode: string;
   line: string;
@@ -115,4 +135,7 @@ export const api = {
   searchStations: (query: string) => request<StationMatch[]>(`/stations/search?q=${encodeURIComponent(query)}`),
   planJourney: (from: string, to: string) =>
     request<{ journeys: Journey[] }>(`/journey?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+
+  getNearbyStations: (lat: number, lon: number) =>
+    request<NearbyResult>(`/nearby?lat=${lat}&lon=${lon}`),
 };

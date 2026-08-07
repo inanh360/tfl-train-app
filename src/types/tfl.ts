@@ -119,6 +119,42 @@ export interface TflDisambiguationResult {
   toLocationDisambiguation?: TflDisambiguationSide;
 }
 
+// --- Nearby stations ---
+
+export interface TflNearbyStopPoint {
+  id: string;
+  commonName: string;
+  lat: number;
+  lon: number;
+  modes: string[];
+  // Only present when includeDistances=true is passed. Documented as
+  // metres from the query point, but TfL's own forum threads note the
+  // input lat/lon gets truncated to 3 decimal places internally, so
+  // treat this as an approximation, not survey-accurate.
+  distance?: number;
+}
+
+// TfL's wrapper shape for this endpoint isn't confirmed against a live
+// response (repeated attempts to verify returned errors unrelated to the
+// app itself) — coded to accept either a bare array or a { stopPoints:
+// [...] } wrapper, since other TfL endpoints use both patterns depending
+// on the resource.
+export type TflNearbyStopPointResponse = TflNearbyStopPoint[] | { stopPoints: TflNearbyStopPoint[] };
+
+// --- Live arrivals ---
+
+export interface TflArrivalPrediction {
+  id: string;
+  lineId: string;
+  lineName: string;
+  stationName: string;
+  platformName: string;
+  direction: string;
+  destinationName: string;
+  timeToStation: number; // seconds
+  timestamp: string;
+}
+
 // Normalised shape we actually work with internally, one row per
 // (line, status) pair — flattens the array-of-statuses-per-line quirk
 // mentioned in the TfL forum thread into something easy to diff against DB rows.

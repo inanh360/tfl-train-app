@@ -34,6 +34,9 @@ export function HeaderNav() {
         <Link href="/journey" style={{ textDecoration: "none", color: "var(--text-dim)" }}>
           Plan journey
         </Link>
+        <Link href="/nearby" style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+          Near me
+        </Link>
         {session ? (
           <>
             <Link href="/favourites" style={{ textDecoration: "none", color: "var(--text-dim)" }}>

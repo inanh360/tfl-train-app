@@ -6,6 +6,9 @@ import type {
   TflJourneyResult,
   TflDisambiguationResult,
   TflDisambiguationSide,
+  TflNearbyStopPointResponse,
+  TflNearbyStopPoint,
+  TflArrivalPrediction,
 } from "../types/tfl";
 
 const TFL_BASE_URL = "https://api.tfl.gov.uk";
@@ -185,4 +188,46 @@ export function normaliseLineStatuses(lines: TflLine[]): NormalisedLineStatus[] 
   }
 
   return normalised;
+}
+
+// Finds train stations within a radius (metres) of a coordinate, filtered
+// to train modes and sorted nearest-first. Coded defensively against the
+// response either being a bare array or wrapped in { stopPoints: [...] },
+// since this specific endpoint's exact shape wasn't verifiable against a
+// live response while building this.
+export async function findNearbyStations(lat: number, lon: number, radiusMetres = 1000): Promise<TflNearbyStopPoint[]> {
+  const url = new URL(`${TFL_BASE_URL}/StopPoint`);
+  url.searchParams.set("lat", String(lat));
+  url.searchParams.set("lon", String(lon));
+  url.searchParams.set("radius", String(radiusMetres));
+  url.searchParams.set("stopTypes", "NaptanMetroStation,NaptanRailStation,NaptanDlrStation");
+  url.searchParams.set("includeDistances", "true");
+  appendAppKey(url);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`TfL nearby stations request failed: ${res.status} ${res.statusText}`);
+  }
+
+  const data = (await res.json()) as TflNearbyStopPointResponse;
+  const stopPoints = Array.isArray(data) ? data : data.stopPoints;
+
+  return stopPoints
+    .filter((s) => s.modes.some((mode) => (TRAIN_MODES as readonly string[]).includes(mode)))
+    .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+}
+
+// Live "next train" predictions for a specific station, ordered soonest
+// first.
+export async function getArrivals(stationId: string): Promise<TflArrivalPrediction[]> {
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(stationId)}/Arrivals`);
+  appendAppKey(url);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`TfL arrivals request failed: ${res.status} ${res.statusText}`);
+  }
+
+  const predictions = (await res.json()) as TflArrivalPrediction[];
+  return predictions.sort((a, b) => a.timeToStation - b.timeToStation);
 }

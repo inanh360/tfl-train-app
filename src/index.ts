@@ -7,6 +7,7 @@ import { notificationsRouter } from "./routes/notifications";
 import { stationsRouter } from "./routes/stations";
 import { journeyRouter } from "./routes/journey";
 import { accountRouter } from "./routes/account";
+import { nearbyRouter } from "./routes/nearby";
 import { generalLimiter, tflProxyLimiter } from "./middleware/rateLimiters";
 
 const app = express();
@@ -27,6 +28,7 @@ app.use("/favourites", favouritesRouter);
 app.use("/notifications", notificationsRouter);
 app.use("/stations", tflProxyLimiter, stationsRouter);
 app.use("/journey", tflProxyLimiter, journeyRouter);
+app.use("/nearby", tflProxyLimiter, nearbyRouter);
 app.use("/account", accountRouter);
 
 app.listen(PORT, () => {
