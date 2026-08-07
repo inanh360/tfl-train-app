@@ -21,8 +21,10 @@ const nextConfig: NextConfig = {
           // when a user clicks a link away from the site.
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           // Turns off browser features this app has no use for, so they
-          // can't be abused even if something else went wrong.
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          // can't be abused even if something else went wrong. Geolocation
+          // is explicitly allowed for our own origin only, since the
+          // nearby-stations feature needs it.
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
           {
             key: "Content-Security-Policy",
             value: [
