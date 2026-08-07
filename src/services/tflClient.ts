@@ -197,16 +197,17 @@ export function normaliseLineStatuses(lines: TflLine[]): NormalisedLineStatus[] 
 // live response while building this.
 export async function findNearbyStations(lat: number, lon: number, radiusMetres = 1000): Promise<TflNearbyStopPoint[]> {
   const url = new URL(`${TFL_BASE_URL}/StopPoint`);
-  url.searchParams.set("lat", String(lat));
-  url.searchParams.set("lon", String(lon));
+  // TfL's actual operation for this is StopPoint_GetByGeoPoint, which per
+  // its generated API client uses dotted param names (location.lat /
+  // location.lon) rather than the plain lat/lon that appears in several
+  // older community examples — those plain names repeatedly 404d against
+  // the live API while building this.
+  url.searchParams.set("location.lat", String(lat));
+  url.searchParams.set("location.lon", String(lon));
   url.searchParams.set("radius", String(radiusMetres));
   url.searchParams.set("stopTypes", "NaptanMetroStation,NaptanRailStation,NaptanDlrStation");
   url.searchParams.set("includeDistances", "true");
-  // These two were present in the only confirmed-working example found
-  // while building this — the request 404s without them, even though
-  // TfL's own docs don't clearly mark them as required.
   url.searchParams.set("useStopPointHierarchy", "true");
-  url.searchParams.set("modes", "");
   appendAppKey(url);
 
   const res = await fetch(url.toString());
