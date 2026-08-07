@@ -39,9 +39,10 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data:",
               "font-src 'self'",
-              // TODO once deployed: replace localhost:4000 with your real
-              // deployed backend URL, and keep the Supabase wildcard.
-              "connect-src 'self' http://localhost:4000 https://*.supabase.co",
+              // Allows both the real deployed API and localhost, so this
+              // same build works whether you're testing locally or it's
+              // actually live.
+              "connect-src 'self' https://api.linestatus.co.uk http://localhost:4000 https://*.supabase.co",
               "frame-ancestors 'none'",
             ].join("; "),
           },
