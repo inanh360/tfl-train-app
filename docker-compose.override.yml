@@ -1,0 +1,12 @@
+# Automatically merged in by `docker compose up` whenever you run it from
+# this folder with no extra flags — this is standard Compose behaviour,
+# not something that needs to be told to load. This is what gives you
+# direct access to localhost:3000 and localhost:4000 for local testing,
+# without needing Caddy or a real domain.
+services:
+  api:
+    ports:
+      - "4000:4000"
+  frontend:
+    ports:
+      - "3000:3000"

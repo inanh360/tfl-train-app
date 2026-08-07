@@ -1,0 +1,7 @@
+linestatus.co.uk {
+    reverse_proxy frontend:3000
+}
+
+api.linestatus.co.uk {
+    reverse_proxy api:4000
+}

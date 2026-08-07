@@ -1,19 +1,14 @@
-# Run everything with: docker compose up --build -d
-#
-# Reads variables from a .env file in this same folder (standard Compose
-# behaviour) — that's your existing backend .env, plus two extra
-# NEXT_PUBLIC_* entries added for the frontend build (see note below).
+# Base service definitions, shared between local dev and production.
+# Local dev auto-loads docker-compose.override.yml alongside this (that's
+# just how Compose works, no flag needed). Production explicitly adds
+# docker-compose.prod.yml instead — see the README note in that file for
+# the exact command.
 
 services:
   api:
     build: .
     image: tfl-backend:latest
     command: ["node", "dist/index.js"]
-    # No published port here on purpose — Caddy reaches this container
-    # directly over Docker's internal network (by service name), so there's
-    # no need to expose port 4000 to the public internet at all. Docker
-    # publishing a port bypasses ufw's protection for it, so the fewer
-    # ports actually published, the smaller the real attack surface.
     env_file: .env
     restart: unless-stopped
 
@@ -30,36 +25,13 @@ services:
     build:
       context: ./frontend
       args:
-        # This is baked into the browser-facing JS at build time, so it
-        # needs to be the real public API address, not localhost, once
-        # this is actually deployed rather than run on your own machine.
-        NEXT_PUBLIC_API_URL: "https://api.linestatus.co.uk"
+        # Defaults to localhost for local dev. Production sets
+        # NEXT_PUBLIC_API_URL in its own .env, which overrides this default
+        # — no separate compose file needed just for this one value.
+        NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://localhost:4000}"
         NEXT_PUBLIC_SUPABASE_URL: "${NEXT_PUBLIC_SUPABASE_URL}"
         NEXT_PUBLIC_SUPABASE_ANON_KEY: "${NEXT_PUBLIC_SUPABASE_ANON_KEY}"
     image: tfl-frontend:latest
-    # Same reasoning as api above — no published port, Caddy reaches this
-    # one internally too.
     restart: unless-stopped
     depends_on:
       - api
-
-  caddy:
-    image: caddy:2-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    restart: unless-stopped
-    depends_on:
-      - api
-      - frontend
-
-volumes:
-  # Persists Caddy's automatically-obtained HTTPS certificates across
-  # container restarts, so it doesn't need to re-request a new one from
-  # Let's Encrypt every time.
-  caddy_data:
-  caddy_config:

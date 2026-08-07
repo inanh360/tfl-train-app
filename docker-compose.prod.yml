@@ -1,0 +1,24 @@
+# Only used on the production server, via:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# Not auto-loaded like docker-compose.override.yml is — Compose only picks
+# this one up when explicitly named with -f, which is deliberate: it keeps
+# Caddy (and the real-domain HTTPS it sets up) out of local dev entirely.
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    depends_on:
+      - api
+      - frontend
+
+volumes:
+  caddy_data:
+  caddy_config:

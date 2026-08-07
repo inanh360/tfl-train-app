@@ -1,35 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setInfo(null);
     setLoading(true);
 
     try {
-      if (mode === "signIn") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        router.replace("/");
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setInfo("Account created. Check your email to confirm, then sign in.");
-        setMode("signIn");
-      }
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          // Where Supabase sends the user after they click the link in
+          // their email. This exact URL also needs to be added to the
+          // Redirect URLs allowlist in Supabase's Auth settings, or the
+          // link will fail.
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+      setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -37,11 +34,28 @@ export default function LoginPage() {
     }
   }
 
+  if (sent) {
+    return (
+      <div style={{ maxWidth: 320, margin: "40px auto", textAlign: "center" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 13, color: "var(--text-dim)", fontWeight: 500, marginBottom: 16 }}>
+          CHECK YOUR EMAIL
+        </h1>
+        <p style={{ fontSize: 13, color: "var(--text-dim)" }}>
+          A sign-in link has been sent to <strong style={{ color: "var(--text)" }}>{email}</strong>. Click it to
+          finish signing in.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 320, margin: "40px auto" }}>
-      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 13, color: "var(--text-dim)", fontWeight: 500, marginBottom: 20 }}>
-        {mode === "signIn" ? "SIGN IN" : "CREATE ACCOUNT"}
+      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 13, color: "var(--text-dim)", fontWeight: 500, marginBottom: 8 }}>
+        SIGN IN
       </h1>
+      <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 20 }}>
+        No password needed. We&apos;ll email you a link to sign in.
+      </p>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <input
@@ -50,20 +64,17 @@ export default function LoginPage() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          required
-          minLength={8}
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={inputStyle}
+          style={{
+            padding: "10px 12px",
+            background: "var(--bg-raised)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius)",
+            color: "var(--text)",
+            fontSize: 14,
+          }}
         />
 
         {error && <p style={{ color: "var(--red)", fontSize: 12, margin: 0 }}>{error}</p>}
-        {info && <p style={{ color: "var(--green)", fontSize: 12, margin: 0 }}>{info}</p>}
 
         <button
           type="submit"
@@ -71,7 +82,7 @@ export default function LoginPage() {
           style={{
             padding: "10px 14px",
             background: "var(--primary)",
-            color: "#06170c",
+            color: "#fff",
             border: "none",
             borderRadius: "var(--radius)",
             fontWeight: 600,
@@ -79,37 +90,9 @@ export default function LoginPage() {
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading ? "…" : mode === "signIn" ? "Sign in" : "Create account"}
+          {loading ? "Sending…" : "Send sign-in link"}
         </button>
       </form>
-
-      <button
-        onClick={() => {
-          setMode(mode === "signIn" ? "signUp" : "signIn");
-          setError(null);
-          setInfo(null);
-        }}
-        style={{
-          marginTop: 16,
-          background: "none",
-          border: "none",
-          color: "var(--text-dim)",
-          fontSize: 12,
-          cursor: "pointer",
-          textDecoration: "underline",
-        }}
-      >
-        {mode === "signIn" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-      </button>
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  background: "var(--bg-raised)",
-  border: "1px solid var(--border)",
-  borderRadius: "var(--radius)",
-  color: "var(--text)",
-  fontSize: 14,
-};
