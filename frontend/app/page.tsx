@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, type Line, type Favourite } from "@/lib/api";
 import { StatusDot } from "@/components/StatusDot";
 import { QuickNav } from "@/components/QuickNav";
+import { cleanBranchLabel } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
 
 const POLL_MS = 30_000; // frontend refetches more often than the backend polls TfL, so status changes show up promptly
@@ -134,9 +135,34 @@ function LineRow({
       />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 600 }}>{line.name}</div>
-        {active.length > 0 && (
-          <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>
-            {active.length > 1 ? `${active.length} disruptions active` : worst?.reason ?? worst?.statusDescription}
+        {active.length === 1 && (
+          <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
+            {active[0].branchLabel && (
+              <span style={{ color: "var(--text)", fontWeight: 500 }}>{cleanBranchLabel(active[0].branchLabel)}: </span>
+            )}
+            {active[0].reason ?? active[0].statusDescription}
+          </div>
+        )}
+        {active.length > 1 && (
+          <div style={{ marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 4 }}>
+              {active.length} disruptions active
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 6 }}>
+              {active.map((event) => (
+                <div key={event.id} style={{ fontSize: 12, color: "var(--text)" }}>
+                  {event.branchLabel ? cleanBranchLabel(event.branchLabel) : event.statusDescription}
+                </div>
+              ))}
+            </div>
+            {/* Reasons are often identical across branches for the same
+                underlying incident — dedupe so it's not repeated once per
+                branch. */}
+            {[...new Set(active.map((e) => e.reason).filter((r): r is string => Boolean(r)))].map((reason) => (
+              <div key={reason} style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>
+                {reason}
+              </div>
+            ))}
           </div>
         )}
       </div>
