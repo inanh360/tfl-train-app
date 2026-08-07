@@ -141,6 +141,7 @@ export const api = {
   markNotificationRead: (id: string) => request<void>(`/notifications/${id}/read`, { method: "POST" }),
 
   searchStations: (query: string) => request<StationMatch[]>(`/stations/search?q=${encodeURIComponent(query)}`),
+  getAllStations: () => request<StationMatch[]>("/stations/all"),
   planJourney: (from: string, to: string) =>
     request<{ journeys: Journey[] }>(`/journey?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
 

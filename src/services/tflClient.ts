@@ -45,10 +45,41 @@ export async function fetchLineStatuses(): Promise<TflLine[]> {
   return (await res.json()) as TflLine[];
 }
 
-// Searches TfL's StopPoint index by free text (station name). TfL's
-// modesFilter param doesn't reliably exclude non-train results (bus stops
-// sharing a hub id still show up), so we post-filter client-side to only
-// matches that include at least one of our train modes.
+// Cached full station list, used to populate the departures page's
+// scrollable picker when the search box is focused but empty. TfL's
+// station list changes rarely, so refetching it on every request would be
+// wasteful — this refreshes at most once every 6 hours.
+let allStationsCache: { data: TflStopPointMatch[]; fetchedAt: number } | null = null;
+const ALL_STATIONS_CACHE_MS = 6 * 60 * 60 * 1000;
+
+// Station-level stopTypes, excluding individual platform-level entries —
+// same set used elsewhere in this file for consistency.
+const STATION_STOP_TYPES = new Set(["NaptanMetroStation", "NaptanRailStation", "NaptanDlrStation"]);
+
+export async function getAllStations(): Promise<TflStopPointMatch[]> {
+  if (allStationsCache && Date.now() - allStationsCache.fetchedAt < ALL_STATIONS_CACHE_MS) {
+    return allStationsCache.data;
+  }
+
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/Mode/${TRAIN_MODES.join(",")}`);
+  appendAppKey(url);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`TfL all-stations request failed: ${res.status} ${res.statusText}`);
+  }
+
+  // This endpoint returns a mix of hub, station, and individual platform
+  // entries for the given modes — filtered here to station-level ones so
+  // the picker shows one entry per station, not one per platform.
+  const raw = (await res.json()) as (TflStopPointMatch & { stopType?: string })[];
+  const stations = raw
+    .filter((s) => s.stopType && STATION_STOP_TYPES.has(s.stopType))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  allStationsCache = { data: stations, fetchedAt: Date.now() };
+  return stations;
+}
 export async function searchStations(query: string): Promise<TflStopPointMatch[]> {
   const url = new URL(`${TFL_BASE_URL}/StopPoint/Search/${encodeURIComponent(query)}`);
   url.searchParams.set("modesFilter", TRAIN_MODES.join(","));

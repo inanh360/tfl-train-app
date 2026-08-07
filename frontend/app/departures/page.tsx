@@ -100,6 +100,7 @@ export default function DeparturesPage() {
         <StationAutocomplete
           label="Or search a station"
           value={station}
+          browsable
           onSelect={(s) => {
             setStation(s);
             setArrivals(null);
