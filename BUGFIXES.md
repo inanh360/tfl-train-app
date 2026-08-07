@@ -240,11 +240,19 @@ The items below were not bugs in the sense of broken behaviour. Nothing was fail
 
 **Fix:** Once a reverse proxy was put in front of both the API and the frontend, there was no longer any need to publish their ports directly to the host at all. Removing those published ports means the reverse proxy still reaches both containers over Docker's own internal network, while neither is reachable from the internet except through the proxy.
 
+### 28. Rate limiting broke once a reverse proxy was added in front of the API
+
+**Where:** `src/index.ts`
+
+**What happened:** Once Caddy was added in front of the backend to handle HTTPS, every request started arriving with an extra header identifying the real visitor's address, since Caddy forwards that on behalf of the actual visitor. Express was not told to trust this header, which is the correct default behaviour, since blindly trusting it from an untrusted source would let anyone fake their own address. The rate limiting library correctly refused to guess which address was real and logged a validation error on every single request instead of silently getting this wrong.
+
+**Fix:** Explicitly told Express to trust exactly one layer of proxy in front of it, matching the real setup where Caddy is the only thing between the internet and the backend. This lets rate limiting correctly identify individual visitors again, without opening up the same trust to any arbitrary proxy further down the line.
+
 ## Production configuration corrections
 
 The two items below were caught before they ever caused a real failure, while preparing the app to actually go live rather than only run on a local machine. They are recorded for the same reason as the hardening section above: they show the kind of check that is easy to skip when moving from local development to a real deployment.
 
-### 28. The frontend was still built pointing at a local address
+### 29. The frontend was still built pointing at a local address
 
 **Where:** `docker-compose.yml`
 
@@ -252,7 +260,7 @@ The two items below were caught before they ever caused a real failure, while pr
 
 **Fix:** Updated the build argument to the real, public backend address before the first production build.
 
-### 29. The Content Security Policy did not allow the real backend address
+### 30. The Content Security Policy did not allow the real backend address
 
 **Where:** `frontend/next.config.ts`
 
@@ -262,6 +270,6 @@ The two items below were caught before they ever caused a real failure, while pr
 
 ## Summary
 
-Twenty nine items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Nineteen were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
+Thirty items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Twenty were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
 
 Several of these, in particular bug 1, bug 12, bug 18, and bug 26, are the kind of issue that would be easy to miss without deliberately testing the real behaviour of the system rather than assuming it works because the code looks correct.
