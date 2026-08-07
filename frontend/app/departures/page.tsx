@@ -1,16 +1,34 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { api, type ArrivalPrediction, type StationMatch } from "@/lib/api";
+import { api, type ArrivalPrediction, type StationMatch, type Favourite } from "@/lib/api";
 import { StationAutocomplete } from "@/components/StationAutocomplete";
+import { useAuth } from "@/lib/auth-context";
 
 const REFRESH_MS = 20_000; // live predictions shift quickly, refresh often
 
 export default function DeparturesPage() {
+  const { session } = useAuth();
   const [station, setStation] = useState<StationMatch | null>(null);
   const [arrivals, setArrivals] = useState<ArrivalPrediction[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [favourites, setFavourites] = useState<Favourite[]>([]);
+
+  const loadFavourites = useCallback(async () => {
+    if (!session) return;
+    try {
+      const data = await api.getFavourites();
+      setFavourites(data.filter((f) => f.favouriteType === "STATION"));
+    } catch {
+      // Quietly ignore — favourites are a convenience here, not essential
+      // to the page working.
+    }
+  }, [session]);
+
+  useEffect(() => {
+    loadFavourites();
+  }, [loadFavourites]);
 
   const load = useCallback(async (s: StationMatch) => {
     try {
@@ -30,15 +48,57 @@ export default function DeparturesPage() {
     return () => clearInterval(interval);
   }, [station, load]);
 
+  const currentFavourite = favourites.find((f) => f.refId === station?.id);
+
+  async function toggleFavourite() {
+    if (!station || !session) return;
+    if (currentFavourite) {
+      await api.removeFavourite(currentFavourite.id);
+    } else {
+      await api.addFavourite({ favouriteType: "STATION", refId: station.id, refLabel: station.name });
+    }
+    loadFavourites();
+  }
+
   return (
     <div>
       <h1 style={{ fontFamily: "var(--font-display)", fontSize: 13, color: "var(--text-dim)", fontWeight: 500, marginBottom: 16 }}>
         LIVE DEPARTURES
       </h1>
 
+      {favourites.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 11, color: "var(--text-dim)", marginBottom: 6, fontFamily: "var(--font-display)" }}>
+            QUICK PICK
+          </label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {favourites.map((fav) => (
+              <button
+                key={fav.id}
+                onClick={() => {
+                  setStation({ id: fav.refId, name: fav.refLabel, modes: [] });
+                  setArrivals(null);
+                }}
+                style={{
+                  padding: "6px 12px",
+                  background: station?.id === fav.refId ? "var(--primary)" : "var(--bg-raised)",
+                  color: station?.id === fav.refId ? "#fff" : "var(--text)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius)",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                {fav.refLabel}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ marginBottom: 20 }}>
         <StationAutocomplete
-          label="Station"
+          label="Or search a station"
           value={station}
           onSelect={(s) => {
             setStation(s);
@@ -63,8 +123,27 @@ export default function DeparturesPage() {
 
       {station && arrivals && (
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>{station.name}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{station.name}</span>
+              {session && (
+                <button
+                  onClick={toggleFavourite}
+                  aria-label={currentFavourite ? `Remove ${station.name} from favourites` : `Favourite ${station.name}`}
+                  aria-pressed={!!currentFavourite}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 16,
+                    color: currentFavourite ? "var(--primary)" : "var(--border)",
+                    padding: 0,
+                  }}
+                >
+                  ★
+                </button>
+              )}
+            </div>
             {lastUpdated && (
               <span style={{ fontFamily: "var(--font-display)", fontSize: 11, color: "var(--text-dim)" }}>
                 updated {lastUpdated.toLocaleTimeString("en-GB")}
