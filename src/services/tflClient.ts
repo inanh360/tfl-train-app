@@ -202,11 +202,17 @@ export async function findNearbyStations(lat: number, lon: number, radiusMetres 
   url.searchParams.set("radius", String(radiusMetres));
   url.searchParams.set("stopTypes", "NaptanMetroStation,NaptanRailStation,NaptanDlrStation");
   url.searchParams.set("includeDistances", "true");
+  // These two were present in the only confirmed-working example found
+  // while building this — the request 404s without them, even though
+  // TfL's own docs don't clearly mark them as required.
+  url.searchParams.set("useStopPointHierarchy", "true");
+  url.searchParams.set("modes", "");
   appendAppKey(url);
 
   const res = await fetch(url.toString());
   if (!res.ok) {
-    throw new Error(`TfL nearby stations request failed: ${res.status} ${res.statusText}`);
+    const body = await res.text().catch(() => "");
+    throw new Error(`TfL nearby stations request failed: ${res.status} ${res.statusText} — ${body}`);
   }
 
   const data = (await res.json()) as TflNearbyStopPointResponse;
