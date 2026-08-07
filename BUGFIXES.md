@@ -230,8 +230,38 @@ The items below were not bugs in the sense of broken behaviour. Nothing was fail
 
 **Fix:** Added the missing function directly to the file in place, rather than repeating the same handoff step that had already gone wrong once.
 
+## More security hardening, found while setting up the production server
+
+### 27. Docker publishing a port bypasses the server firewall
+
+**Where:** `docker-compose.yml`, on the real production server
+
+**What was missing:** The server's firewall was set up to only allow ports 22, 80, and 443 from the outside world. Despite that, the backend was still directly reachable on port 4000 from anywhere on the internet. Docker manipulates the server's own firewall rules directly when a container publishes a port, in a way that bypasses the normal firewall's protection for that specific port. This is a well known interaction between Docker and this kind of firewall, not a bug in either one on its own, but easy to miss if you assume the firewall covers everything.
+
+**Fix:** Once a reverse proxy was put in front of both the API and the frontend, there was no longer any need to publish their ports directly to the host at all. Removing those published ports means the reverse proxy still reaches both containers over Docker's own internal network, while neither is reachable from the internet except through the proxy.
+
+## Production configuration corrections
+
+The two items below were caught before they ever caused a real failure, while preparing the app to actually go live rather than only run on a local machine. They are recorded for the same reason as the hardening section above: they show the kind of check that is easy to skip when moving from local development to a real deployment.
+
+### 28. The frontend was still built pointing at a local address
+
+**Where:** `docker-compose.yml`
+
+**What was missing:** The frontend's API address is baked into its JavaScript at build time, not read at runtime. This value had been left pointing at `localhost:4000`, which only ever meant anything on a local machine. Deployed as is, the live site would have tried to call an address that means nothing on a real server, and every request from the deployed frontend to the backend would have failed.
+
+**Fix:** Updated the build argument to the real, public backend address before the first production build.
+
+### 29. The Content Security Policy did not allow the real backend address
+
+**Where:** `frontend/next.config.ts`
+
+**What was missing:** Similar to the item above. The CSP rule controlling which addresses the page is allowed to make requests to had been left listing only `localhost:4000`. Even once the build argument in item 28 was fixed, the browser itself would have blocked every request to the real backend address, since the policy did not name it as allowed.
+
+**Fix:** Added the real backend address to the policy alongside localhost, so the same build works whether it is being tested locally or actually deployed.
+
 ## Summary
 
-Twenty six items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, and one deployment sync issue. Nineteen of these were genuine bugs in the running code. Six were hardening steps taken proactively during a security review. The final one was a mismatch between an intended change and what actually ended up on disk, caught by the build rather than by chance.
+Twenty nine items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Nineteen were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
 
 Several of these, in particular bug 1, bug 12, bug 18, and bug 26, are the kind of issue that would be easy to miss without deliberately testing the real behaviour of the system rather than assuming it works because the code looks correct.
