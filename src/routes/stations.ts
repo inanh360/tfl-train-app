@@ -1,20 +1,7 @@
 import { Router } from "express";
-import { searchStations, getArrivals, getAllStations } from "../services/tflClient";
+import { searchStations, getArrivals } from "../services/tflClient";
 
 export const stationsRouter = Router();
-
-// GET /stations/all — the full station list, used to populate the
-// departures page's scrollable picker when the search box is focused but
-// empty. Cached server-side, so this is cheap to call.
-stationsRouter.get("/all", async (_req, res) => {
-  try {
-    const stations = await getAllStations();
-    res.json(stations.map((s) => ({ id: s.id, name: s.name, modes: s.modes })));
-  } catch (err) {
-    console.error("[stations/all] failed", err);
-    res.status(502).json({ error: "Failed to load station list from TfL" });
-  }
-});
 
 // GET /stations/search?q=farring — used by the journey planner's
 // from/to autocomplete fields.

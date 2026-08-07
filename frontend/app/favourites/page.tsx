@@ -63,16 +63,8 @@ export default function FavouritesPage() {
         <EmptyState />
       ) : (
         <>
-          {favouriteLines.length > 0 && (
-            <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden", marginBottom: favouriteStations.length > 0 ? 24 : 0 }}>
-              {favouriteLines.map((line) => (
-                <LineRow key={line.id} line={line} isFavourite={true} onToggleFavourite={() => toggleFavourite(line)} />
-              ))}
-            </div>
-          )}
-
           {favouriteStations.length > 0 && (
-            <div>
+            <div style={{ marginBottom: favouriteLines.length > 0 ? 24 : 0 }}>
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: 12, color: "var(--text-dim)", fontWeight: 500, marginBottom: 8 }}>
                 STATIONS
               </h2>
@@ -81,6 +73,14 @@ export default function FavouritesPage() {
                   <StationFavouriteRow key={fav.id} favourite={fav} onRemove={() => removeStationFavourite(fav.id)} />
                 ))}
               </div>
+            </div>
+          )}
+
+          {favouriteLines.length > 0 && (
+            <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+              {favouriteLines.map((line) => (
+                <LineRow key={line.id} line={line} isFavourite={true} onToggleFavourite={() => toggleFavourite(line)} />
+              ))}
             </div>
           )}
         </>
