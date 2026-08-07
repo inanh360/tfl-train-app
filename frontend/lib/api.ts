@@ -78,6 +78,14 @@ export interface StationMatch {
   modes: string[];
 }
 
+export interface ArrivalPrediction {
+  line: string;
+  platform: string;
+  destination: string;
+  minutesAway: number;
+  secondsAway: number;
+}
+
 export interface NearbyTrain {
   line: string;
   destination: string;
@@ -138,4 +146,7 @@ export const api = {
 
   getNearbyStations: (lat: number, lon: number) =>
     request<NearbyResult>(`/nearby?lat=${lat}&lon=${lon}`),
+
+  getArrivals: (stationId: string) =>
+    request<ArrivalPrediction[]>(`/stations/${encodeURIComponent(stationId)}/arrivals`),
 };

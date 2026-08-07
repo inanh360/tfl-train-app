@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { searchStations } from "../services/tflClient";
+import { searchStations, getArrivals } from "../services/tflClient";
 
 export const stationsRouter = Router();
 
@@ -25,5 +25,25 @@ stationsRouter.get("/search", async (req, res) => {
   } catch (err) {
     console.error("[stations/search] failed", err);
     res.status(502).json({ error: "Failed to search TfL stations" });
+  }
+});
+
+// GET /stations/:id/arrivals — live "next train" predictions for a
+// specific station, used by the departures board page.
+stationsRouter.get("/:id/arrivals", async (req, res) => {
+  try {
+    const predictions = await getArrivals(req.params.id);
+    res.json(
+      predictions.map((p) => ({
+        line: p.lineName,
+        platform: p.platformName,
+        destination: p.destinationName,
+        minutesAway: Math.round(p.timeToStation / 60),
+        secondsAway: p.timeToStation,
+      }))
+    );
+  } catch (err) {
+    console.error("[stations/:id/arrivals] failed", err);
+    res.status(502).json({ error: "Failed to get live arrivals from TfL" });
   }
 });

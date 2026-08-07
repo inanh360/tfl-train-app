@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 const TILES = [
+  { href: "/departures", title: "Live departures", description: "Real-time next trains at any station" },
   { href: "/nearby", title: "Near me", description: "Find the best nearby station right now" },
   { href: "/journey", title: "Plan a journey", description: "Train-only routes, live disruption-aware" },
   { href: "/favourites", title: "Favourites", description: "Lines and stations you're tracking" },
