@@ -238,10 +238,16 @@ async function resolveToHubId(stationId: string): Promise<string> {
 
   try {
     const res = await fetch(url.toString());
-    if (!res.ok) return stationId;
+    if (!res.ok) {
+      console.log(`[arrivals] StopPoint detail lookup failed for ${stationId}: ${res.status}`);
+      return stationId;
+    }
     const detail = (await res.json()) as TflStopPointDetail;
-    return detail.hubNaptanCode ?? stationId;
-  } catch {
+    const resolved = detail.hubNaptanCode ?? stationId;
+    console.log(`[arrivals] ${stationId} -> hubNaptanCode: ${detail.hubNaptanCode ?? "(none)"}, using: ${resolved}`);
+    return resolved;
+  } catch (err) {
+    console.log(`[arrivals] StopPoint detail lookup threw for ${stationId}:`, err);
     return stationId;
   }
 }
@@ -256,9 +262,12 @@ export async function getArrivals(stationId: string): Promise<TflArrivalPredicti
 
   const res = await fetch(url.toString());
   if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.log(`[arrivals] request failed for ${resolvedId}: ${res.status} — ${body}`);
     throw new Error(`TfL arrivals request failed: ${res.status} ${res.statusText}`);
   }
 
   const predictions = (await res.json()) as TflArrivalPrediction[];
+  console.log(`[arrivals] ${resolvedId} returned ${predictions.length} predictions`);
   return predictions.sort((a, b) => a.timeToStation - b.timeToStation);
 }
