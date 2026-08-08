@@ -52,6 +52,10 @@ export default function FavouritesPage() {
     .filter((line) => favouriteLineIds.has(line.id))
     .sort((a, b) => severityRank(a) - severityRank(b));
   const favouriteStations = favourites.filter((f) => f.favouriteType === "STATION");
+  // Matched by display name, since that's the field arrivals data actually
+  // gives us — both ultimately come from the same TfL line name field, so
+  // this stays consistent.
+  const favouriteLineNames = new Set(favouriteLines.map((l) => l.name));
 
   return (
     <div>
@@ -70,7 +74,12 @@ export default function FavouritesPage() {
               </h2>
               <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
                 {favouriteStations.map((fav) => (
-                  <StationFavouriteRow key={fav.id} favourite={fav} onRemove={() => removeStationFavourite(fav.id)} />
+                  <StationFavouriteRow
+                    key={fav.id}
+                    favourite={fav}
+                    favouriteLineNames={favouriteLineNames}
+                    onRemove={() => removeStationFavourite(fav.id)}
+                  />
                 ))}
               </div>
             </div>
@@ -89,16 +98,34 @@ export default function FavouritesPage() {
   );
 }
 
-function StationFavouriteRow({ favourite, onRemove }: { favourite: Favourite; onRemove: () => void }) {
+function StationFavouriteRow({
+  favourite,
+  favouriteLineNames,
+  onRemove,
+}: {
+  favourite: Favourite;
+  favouriteLineNames: Set<string>;
+  onRemove: () => void;
+}) {
   const [arrivals, setArrivals] = useState<ArrivalPrediction[] | null>(null);
+  const [hadAnyArrivals, setHadAnyArrivals] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     api
       .getArrivals(favourite.refId)
-      .then((data) => setArrivals(data.sort((a, b) => a.secondsAway - b.secondsAway).slice(0, 3)))
+      .then((data) => {
+        const sorted = data.sort((a, b) => a.secondsAway - b.secondsAway);
+        setHadAnyArrivals(sorted.length > 0);
+        // Only filter down to favourited lines if the person has actually
+        // favourited any — otherwise there's nothing to filter by, and
+        // showing nothing would be worse than showing the true soonest
+        // trains regardless of line.
+        const relevant = favouriteLineNames.size > 0 ? sorted.filter((t) => favouriteLineNames.has(t.line)) : sorted;
+        setArrivals(relevant.slice(0, 3));
+      })
       .catch(() => setError(true));
-  }, [favourite.refId]);
+  }, [favourite.refId, favouriteLineNames]);
 
   return (
     <div
@@ -131,7 +158,11 @@ function StationFavouriteRow({ favourite, onRemove }: { favourite: Favourite; on
         <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0, fontFamily: "var(--font-display)" }}>Loading…</p>
       )}
       {arrivals && arrivals.length === 0 && (
-        <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>No live predictions right now.</p>
+        <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>
+          {hadAnyArrivals && favouriteLineNames.size > 0
+            ? "No trains on your favourited lines right now."
+            : "No live predictions right now."}
+        </p>
       )}
       {arrivals && arrivals.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
