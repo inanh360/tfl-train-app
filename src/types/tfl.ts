@@ -155,6 +155,17 @@ export interface TflArrivalPrediction {
   timestamp: string;
 }
 
+// A StopPoint's own details, specifically the field that tells us whether
+// it belongs to a larger interchange hub — large multi-line stations like
+// Stratford or Bank are often split across several separate StopPoint ids,
+// each covering only some of the lines, with a shared hubNaptanCode
+// linking them. Querying arrivals on the hub id rather than a single
+// fragment id returns predictions across every line at the station.
+export interface TflStopPointDetail {
+  id: string;
+  hubNaptanCode?: string;
+}
+
 // Normalised shape we actually work with internally, one row per
 // (line, status) pair — flattens the array-of-statuses-per-line quirk
 // mentioned in the TfL forum thread into something easy to diff against DB rows.

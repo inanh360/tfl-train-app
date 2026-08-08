@@ -9,6 +9,7 @@ import type {
   TflNearbyStopPointResponse,
   TflNearbyStopPoint,
   TflArrivalPrediction,
+  TflStopPointDetail,
 } from "../types/tfl";
 
 const TFL_BASE_URL = "https://api.tfl.gov.uk";
@@ -224,10 +225,33 @@ export async function findNearbyStations(lat: number, lon: number, radiusMetres 
     .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
 }
 
+// Some large interchange stations (Stratford, Bank/Monument, others) are
+// split across several separate StopPoint ids in TfL's data, each
+// covering only some of the lines at that station, with a shared
+// hubNaptanCode linking them together. This resolves to that hub id when
+// one exists, so arrivals cover the whole station rather than whichever
+// single fragment happened to be selected. Falls back to the original id
+// if the lookup fails or there's no hub — never worse than before.
+async function resolveToHubId(stationId: string): Promise<string> {
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(stationId)}`);
+  appendAppKey(url);
+
+  try {
+    const res = await fetch(url.toString());
+    if (!res.ok) return stationId;
+    const detail = (await res.json()) as TflStopPointDetail;
+    return detail.hubNaptanCode ?? stationId;
+  } catch {
+    return stationId;
+  }
+}
+
 // Live "next train" predictions for a specific station, ordered soonest
 // first.
 export async function getArrivals(stationId: string): Promise<TflArrivalPrediction[]> {
-  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(stationId)}/Arrivals`);
+  const resolvedId = await resolveToHubId(stationId);
+
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(resolvedId)}/Arrivals`);
   appendAppKey(url);
 
   const res = await fetch(url.toString());
