@@ -9,7 +9,6 @@ import type {
   TflNearbyStopPointResponse,
   TflNearbyStopPoint,
   TflArrivalPrediction,
-  TflStopPointDetail,
 } from "../types/tfl";
 
 const TFL_BASE_URL = "https://api.tfl.gov.uk";
@@ -232,42 +231,28 @@ export async function findNearbyStations(lat: number, lon: number, radiusMetres 
 // one exists, so arrivals cover the whole station rather than whichever
 // single fragment happened to be selected. Falls back to the original id
 // if the lookup fails or there's no hub — never worse than before.
-async function resolveToHubId(stationId: string): Promise<string> {
-  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(stationId)}`);
-  appendAppKey(url);
-
-  try {
-    const res = await fetch(url.toString());
-    if (!res.ok) {
-      console.log(`[arrivals] StopPoint detail lookup failed for ${stationId}: ${res.status}`);
-      return stationId;
-    }
-    const detail = (await res.json()) as TflStopPointDetail;
-    const resolved = detail.hubNaptanCode ?? stationId;
-    console.log(`[arrivals] ${stationId} -> hubNaptanCode: ${detail.hubNaptanCode ?? "(none)"}, using: ${resolved}`);
-    return resolved;
-  } catch (err) {
-    console.log(`[arrivals] StopPoint detail lookup threw for ${stationId}:`, err);
-    return stationId;
-  }
-}
-
 // Live "next train" predictions for a specific station, ordered soonest
 // first.
+//
+// Known limitation: large multi-line interchanges (Stratford, Bank, etc.)
+// are often split across several separate StopPoint ids in TfL's data,
+// each covering only some of the lines, so results here can be
+// incomplete for those specific stations. An attempt to fix this by
+// resolving to the station's hub id first was tried and made things
+// worse, not better — TfL's Arrivals endpoint returns nothing for hub
+// ids, since a hub is a grouping concept, not a real place trains arrive
+// at. A proper fix would need to enumerate and merge arrivals across a
+// hub's individual child stations, which is a larger piece of work than
+// fits here — left as a known gap rather than guessed at further.
 export async function getArrivals(stationId: string): Promise<TflArrivalPrediction[]> {
-  const resolvedId = await resolveToHubId(stationId);
-
-  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(resolvedId)}/Arrivals`);
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(stationId)}/Arrivals`);
   appendAppKey(url);
 
   const res = await fetch(url.toString());
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    console.log(`[arrivals] request failed for ${resolvedId}: ${res.status} — ${body}`);
     throw new Error(`TfL arrivals request failed: ${res.status} ${res.statusText}`);
   }
 
   const predictions = (await res.json()) as TflArrivalPrediction[];
-  console.log(`[arrivals] ${resolvedId} returned ${predictions.length} predictions`);
   return predictions.sort((a, b) => a.timeToStation - b.timeToStation);
 }
