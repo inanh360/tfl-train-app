@@ -155,15 +155,14 @@ export interface TflArrivalPrediction {
   timestamp: string;
 }
 
-// A StopPoint's own details, specifically the field that tells us whether
-// it belongs to a larger interchange hub — large multi-line stations like
-// Stratford or Bank are often split across several separate StopPoint ids,
-// each covering only some of the lines, with a shared hubNaptanCode
-// linking them. Querying arrivals on the hub id rather than a single
-// fragment id returns predictions across every line at the station.
+// A StopPoint's own details. For a hub-type StopPoint specifically, this
+// should include its constituent child stations — each a real, separately
+// queryable StopPoint that arrivals data actually attaches to, unlike the
+// hub id itself.
 export interface TflStopPointDetail {
   id: string;
   hubNaptanCode?: string;
+  children?: { id: string; commonName?: string; modes?: string[] }[];
 }
 
 // Normalised shape we actually work with internally, one row per

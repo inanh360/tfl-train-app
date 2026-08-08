@@ -9,6 +9,7 @@ import type {
   TflNearbyStopPointResponse,
   TflNearbyStopPoint,
   TflArrivalPrediction,
+  TflStopPointDetail,
 } from "../types/tfl";
 
 const TFL_BASE_URL = "https://api.tfl.gov.uk";
@@ -231,28 +232,73 @@ export async function findNearbyStations(lat: number, lon: number, radiusMetres 
 // one exists, so arrivals cover the whole station rather than whichever
 // single fragment happened to be selected. Falls back to the original id
 // if the lookup fails or there's no hub — never worse than before.
-// Live "next train" predictions for a specific station, ordered soonest
-// first.
-//
-// Known limitation: large multi-line interchanges (Stratford, Bank, etc.)
-// are often split across several separate StopPoint ids in TfL's data,
-// each covering only some of the lines, so results here can be
-// incomplete for those specific stations. An attempt to fix this by
-// resolving to the station's hub id first was tried and made things
-// worse, not better — TfL's Arrivals endpoint returns nothing for hub
-// ids, since a hub is a grouping concept, not a real place trains arrive
-// at. A proper fix would need to enumerate and merge arrivals across a
-// hub's individual child stations, which is a larger piece of work than
-// fits here — left as a known gap rather than guessed at further.
-export async function getArrivals(stationId: string): Promise<TflArrivalPrediction[]> {
-  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(stationId)}/Arrivals`);
+async function fetchStopPointDetail(id: string): Promise<TflStopPointDetail | null> {
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(id)}`);
   appendAppKey(url);
+  try {
+    const res = await fetch(url.toString());
+    if (!res.ok) return null;
+    return (await res.json()) as TflStopPointDetail;
+  } catch {
+    return null;
+  }
+}
 
+async function fetchArrivalsForId(id: string): Promise<TflArrivalPrediction[]> {
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(id)}/Arrivals`);
+  appendAppKey(url);
   const res = await fetch(url.toString());
   if (!res.ok) {
     throw new Error(`TfL arrivals request failed: ${res.status} ${res.statusText}`);
   }
+  return (await res.json()) as TflArrivalPrediction[];
+}
 
-  const predictions = (await res.json()) as TflArrivalPrediction[];
-  return predictions.sort((a, b) => a.timeToStation - b.timeToStation);
+// Live "next train" predictions for a specific station, ordered soonest
+// first.
+//
+// Large multi-line interchanges (Stratford, Bank, etc.) are often split
+// across several separate StopPoint ids in TfL's data, each covering only
+// some of the lines. Querying the shared hub id directly returns nothing
+// — a hub is a grouping concept, not a real place trains arrive at — so
+// this instead fetches the hub's child stations and merges arrivals
+// across all of them, which is where the actual per-line data lives.
+export async function getArrivals(stationId: string): Promise<TflArrivalPrediction[]> {
+  const detail = await fetchStopPointDetail(stationId);
+  const hubId = detail?.hubNaptanCode;
+
+  if (!hubId) {
+    console.log(`[arrivals] ${stationId} has no hub, querying directly`);
+    return (await fetchArrivalsForId(stationId)).sort((a, b) => a.timeToStation - b.timeToStation);
+  }
+
+  const hubDetail = await fetchStopPointDetail(hubId);
+  const children = hubDetail?.children ?? [];
+  console.log(`[arrivals] ${stationId} -> hub ${hubId} -> ${children.length} children`);
+
+  if (children.length === 0) {
+    // No children found — fall back to the original id rather than
+    // returning nothing.
+    console.log(`[arrivals] no children found for hub ${hubId}, falling back to ${stationId}`);
+    return (await fetchArrivalsForId(stationId)).sort((a, b) => a.timeToStation - b.timeToStation);
+  }
+
+  const results = await Promise.allSettled(children.map((c) => fetchArrivalsForId(c.id)));
+  const merged: TflArrivalPrediction[] = [];
+  const seenIds = new Set<string>();
+
+  for (const result of results) {
+    if (result.status !== "fulfilled") continue;
+    for (const prediction of result.value) {
+      // Different children can report the same physical train (shared
+      // platforms), so dedupe by prediction id rather than trusting each
+      // child's list to be independent.
+      if (seenIds.has(prediction.id)) continue;
+      seenIds.add(prediction.id);
+      merged.push(prediction);
+    }
+  }
+
+  console.log(`[arrivals] merged ${merged.length} predictions across ${children.length} children for hub ${hubId}`);
+  return merged.sort((a, b) => a.timeToStation - b.timeToStation);
 }
