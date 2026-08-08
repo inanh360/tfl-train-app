@@ -268,8 +268,22 @@ The two items below were caught before they ever caused a real failure, while pr
 
 **Fix:** Added the real backend address to the policy alongside localhost, so the same build works whether it is being tested locally or actually deployed.
 
+## Journey planner and live data bugs, continued
+
+### 31. Large interchange stations showed only some of their lines
+
+**Where:** `src/services/tflClient.ts`
+
+**What happened:** Stratford, one of the biggest interchange stations in London, only ever showed live arrivals for two of its five lines. TfL splits a station this size across several separate ids internally, one covering some lines, another covering others, rather than exposing one single id for the whole station. Whichever id the station search happened to return only ever covered part of the real station.
+
+**First attempt, which made things worse:** Every station id carries a shared hub code linking it to its siblings. The first fix tried querying arrivals directly on that hub code instead of the original id, on the assumption that the hub would aggregate everything underneath it. Tested locally, this did not aggregate anything. It returned nothing at all, for Stratford and for other hub stations checked the same way. A hub code identifies a grouping of stations, it is not itself a real place a train arrives at, so asking it directly for arrivals had nothing to answer with.
+
+**What actually worked:** Rather than asking the hub for arrivals, the fix asks the hub for its own details, which include a list of its real child stations. Arrivals are then fetched for every child individually and merged into one list, with duplicate predictions removed, since more than one child can report the same physical train where platforms are shared. This was verified locally by watching the actual values returned at each step, hub code found, number of children found, number of predictions merged, rather than guessing again and shipping blind.
+
+**Fix:** Replaced the hub based lookup with the child based one described above. Confirmed locally that Stratford now returns arrivals across all of its lines before deploying it.
+
 ## Summary
 
-Thirty items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Twenty were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
+Thirty one items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Twenty one were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
 
-Several of these, in particular bug 1, bug 12, bug 18, and bug 26, are the kind of issue that would be easy to miss without deliberately testing the real behaviour of the system rather than assuming it works because the code looks correct.
+Several of these, in particular bug 1, bug 12, bug 18, bug 26, and bug 31, are the kind of issue that would be easy to miss without deliberately testing the real behaviour of the system rather than assuming it works because the code looks correct. Bug 31 in particular is a reminder that the first fix for a real problem is not always the right one, and that testing an assumption locally before deploying it is what actually caught that the first attempt had made things worse rather than better.

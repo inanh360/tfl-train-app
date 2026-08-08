@@ -14,7 +14,9 @@ The app currently focuses on three things.
 
 **Live departures.** Real time next train predictions for any station, refreshing automatically.
 
-On top of this, signed in users can favourite specific lines or stations and get notified when something they care about is disrupted. A background service checks TfL's live data every 90 seconds and only sends a notification when something genuinely changes, not on every check.
+On top of this, signed in users can favourite specific lines or stations and get notified when something they care about is disrupted. A background service checks TfL's live data every 90 seconds and only sends a notification when something genuinely changes, not on every check. A favourited station's preview shows only trains on the lines that person has also favourited, rather than just whatever happens to be soonest, so a station served by five lines does not get dominated by whichever one runs most often.
+
+Large interchange stations, the ones served by several different lines at once, are handled properly too. TfL represents a station like this as several separate ids internally rather than one, so getting a complete picture means finding and merging results across all of them rather than trusting whichever single id a search happens to return.
 
 ## Why this is more than a typical personal project
 
