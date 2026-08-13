@@ -159,6 +159,23 @@ function StationCard({
         )}
       </div>
 
+      {station.lat != null && station.lon != null && (
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-block",
+            fontSize: 12,
+            color: "var(--primary)",
+            textDecoration: "none",
+            marginBottom: 10,
+          }}
+        >
+          Directions on Google Maps →
+        </a>
+      )}
+
       {station.nextTrains.length === 0 ? (
         <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>No live predictions right now.</p>
       ) : (

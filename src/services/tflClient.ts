@@ -198,19 +198,42 @@ export function normaliseLineStatuses(lines: TflLine[]): NormalisedLineStatus[] 
 // response either being a bare array or wrapped in { stopPoints: [...] },
 // since this specific endpoint's exact shape wasn't verifiable against a
 // live response while building this.
+// Great-circle distance between two points, in metres. /Place doesn't
+// document a distance field in its response (unlike /StopPoint's
+// includeDistances flag), so this computes it ourselves rather than
+// assuming TfL supplies one.
+function haversineMetres(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export async function findNearbyStations(lat: number, lon: number, radiusMetres = 1000): Promise<TflNearbyStopPoint[]> {
-  const url = new URL(`${TFL_BASE_URL}/StopPoint`);
-  // TfL's actual operation for this is StopPoint_GetByGeoPoint, which per
-  // its generated API client uses dotted param names (location.lat /
-  // location.lon) rather than the plain lat/lon that appears in several
-  // older community examples — those plain names repeatedly 404d against
-  // the live API while building this.
-  url.searchParams.set("location.lat", String(lat));
-  url.searchParams.set("location.lon", String(lon));
+  // The correct endpoint for this turned out to be /Place (Place_GetByGeo),
+  // not /StopPoint — an earlier attempt on /StopPoint with several
+  // different parameter name variants (lat/lon, location.lat/location.lon)
+  // all 404d. TfL's own current OpenAPI spec documents /Place for this,
+  // and a direct answer on TfL's forum to someone hitting the exact same
+  // 404 confirmed the working parameter names are plain "lat"/"lon", not
+  // the "placeGeo.lat"/"placeGeo.lon" the same spec's schema names
+  // suggest — the spec's path was right, its exact param naming here
+  // was stale.
+  const url = new URL(`${TFL_BASE_URL}/Place`);
+  url.searchParams.set("lat", String(lat));
+  url.searchParams.set("lon", String(lon));
   url.searchParams.set("radius", String(radiusMetres));
-  url.searchParams.set("stopTypes", "NaptanMetroStation,NaptanRailStation,NaptanDlrStation");
-  url.searchParams.set("includeDistances", "true");
-  url.searchParams.set("useStopPointHierarchy", "true");
+  // "NaptanDlrStation" was explicitly rejected by this endpoint with a 400
+  // ("place types are not recognised"), even though it's a valid stopType
+  // elsewhere in the API — /Place evidently uses a narrower type
+  // vocabulary than /StopPoint does. DLR stations may or may not still
+  // appear here under NaptanMetroStation depending on how TfL classifies
+  // them internally — worth confirming against real results before
+  // assuming DLR is fully covered.
+  url.searchParams.set("type", "NaptanMetroStation,NaptanRailStation");
   appendAppKey(url);
 
   const res = await fetch(url.toString());
@@ -219,11 +242,19 @@ export async function findNearbyStations(lat: number, lon: number, radiusMetres 
     throw new Error(`TfL nearby stations request failed: ${res.status} ${res.statusText} — ${body}`);
   }
 
-  const data = (await res.json()) as TflNearbyStopPointResponse;
-  const stopPoints = Array.isArray(data) ? data : data.stopPoints;
+  const data = await res.json();
+  // Confirmed against a live response: /Place wraps results as
+  // { places: [...] }, not { stopPoints: [...] } as originally guessed
+  // and not a bare array as the OpenAPI spec's schema implied either.
+  const stopPoints: TflNearbyStopPoint[] = (data as { places?: TflNearbyStopPoint[] })?.places ?? [];
+  console.log(`[nearby] TfL returned ${stopPoints.length} raw places before filtering`);
 
   return stopPoints
     .filter((s) => s.modes.some((mode) => (TRAIN_MODES as readonly string[]).includes(mode)))
+    .map((s) => ({
+      ...s,
+      distance: s.lat != null && s.lon != null ? haversineMetres(lat, lon, s.lat, s.lon) : s.distance,
+    }))
     .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
 }
 

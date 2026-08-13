@@ -116,6 +116,8 @@ export interface NearbyTrain {
 export interface NearbyStation {
   id: string;
   name: string;
+  lat: number | null;
+  lon: number | null;
   distanceMetres: number | null;
   walkMinutes: number;
   nextTrains: NearbyTrain[];

@@ -14,6 +14,8 @@ const MAX_STATIONS_TO_CHECK = 6;
 interface StationResult {
   id: string;
   name: string;
+  lat: number | null;
+  lon: number | null;
   distanceMetres: number | null;
   walkMinutes: number;
   nextTrains: { line: string; destination: string; minutesAway: number }[];
@@ -32,7 +34,7 @@ interface StationResult {
 nearbyRouter.get("/", async (req, res) => {
   const lat = Number(req.query.lat);
   const lon = Number(req.query.lon);
-  const radius = req.query.radius ? Number(req.query.radius) : 1000;
+  const radius = req.query.radius ? Number(req.query.radius) : 2000;
 
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     res.status(400).json({ error: "Query params 'lat' and 'lon' are required and must be numbers" });
@@ -60,6 +62,8 @@ nearbyRouter.get("/", async (req, res) => {
         return {
           id: station.id,
           name: station.commonName,
+          lat: station.lat ?? null,
+          lon: station.lon ?? null,
           distanceMetres: station.distance ?? null,
           walkMinutes,
           nextTrains: predictions.slice(0, 5).map((p) => ({
