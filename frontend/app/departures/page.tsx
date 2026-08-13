@@ -137,7 +137,12 @@ export default function DeparturesPage() {
                     cursor: "pointer",
                     fontSize: 16,
                     color: currentFavourite ? "var(--primary)" : "var(--border)",
-                    padding: 0,
+                    padding: 10,
+                    minWidth: 44,
+                    minHeight: 44,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   ★

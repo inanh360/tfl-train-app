@@ -86,3 +86,45 @@ button {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* Nav switches to a hamburger menu below 640px, since the full row of
+   links (up to six items when signed in) has no room to fit on a phone
+   screen otherwise. */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.nav-toggle {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .nav-links {
+    display: none;
+  }
+  .nav-links.nav-links-open {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    position: absolute;
+    top: 100%;
+    right: 20px;
+    margin-top: 8px;
+    padding: 12px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    z-index: 20;
+  }
+  .nav-links.nav-links-open a,
+  .nav-links.nav-links-open button {
+    padding: 8px 4px;
+    width: 100%;
+  }
+  .nav-toggle {
+    display: block;
+  }
+}
