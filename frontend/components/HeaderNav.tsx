@@ -106,6 +106,9 @@ export function HeaderNav() {
             <Link href="/departures" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
               Departures
             </Link>
+            <Link href="/nearby" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+              Near me
+            </Link>
             <Link href="/bus" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
               Bus
             </Link>
