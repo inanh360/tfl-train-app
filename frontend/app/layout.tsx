@@ -20,7 +20,8 @@ const bodyFont = IBM_Plex_Sans({
 
 export const metadata: Metadata = {
   title: "Line Status",
-  description: "Live TfL train line status, journey planning, and disruption alerts.",
+  description:
+    "Check live London Underground line statuses, delays, disruptions and departures. Plan your journey and see the latest information for every Tube line.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
