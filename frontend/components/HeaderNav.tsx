@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
@@ -8,6 +9,8 @@ import { useAuth } from "@/lib/auth-context";
 export function HeaderNav() {
   const { session, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isBusSection = pathname.startsWith("/bus");
 
   return (
     <header
@@ -22,7 +25,7 @@ export function HeaderNav() {
       }}
     >
       <Link
-        href="/"
+        href={isBusSection ? "/bus" : "/"}
         style={{
           display: "flex",
           alignItems: "center",
@@ -35,7 +38,7 @@ export function HeaderNav() {
           color: "var(--primary)",
         }}
       >
-        <Image src="/logo.png" alt="" width={18} height={18} style={{ display: "block" }} />
+        <Image src={isBusSection ? "/logo-bus.png" : "/logo.png"} alt="" width={18} height={18} style={{ display: "block" }} />
         LINE STATUS
       </Link>
 
@@ -58,45 +61,89 @@ export function HeaderNav() {
       </button>
 
       <nav className={`nav-links${menuOpen ? " nav-links-open" : ""}`} style={{ fontSize: 13 }}>
-        <Link href="/journey" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
-          Plan journey
-        </Link>
-        <Link href="/departures" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
-          Departures
-        </Link>
-        {session ? (
+        {isBusSection ? (
           <>
-            <Link href="/favourites" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
-              Favourites
+            <Link href="/bus/times" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+              Live departures
             </Link>
-            <Link href="/notifications" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
-              Alerts
+            {session && (
+              <Link href="/bus/favourites" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+                Favourites
+              </Link>
+            )}
+            <Link href="/" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+              Train
             </Link>
-            <Link href="/account" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
-              Account
-            </Link>
-            <button
-              onClick={() => {
-                setMenuOpen(false);
-                signOut();
-              }}
-              style={{
-                background: "none",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius)",
-                padding: "4px 10px",
-                color: "var(--text-dim)",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              Sign out
-            </button>
+            {session ? (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  signOut();
+                }}
+                style={{
+                  background: "none",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius)",
+                  padding: "4px 10px",
+                  color: "var(--text-dim)",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                Sign out
+              </button>
+            ) : (
+              <Link href="/login" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--primary)" }}>
+                Sign in
+              </Link>
+            )}
           </>
         ) : (
-          <Link href="/login" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--primary)" }}>
-            Sign in
-          </Link>
+          <>
+            <Link href="/journey" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+              Plan journey
+            </Link>
+            <Link href="/departures" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+              Departures
+            </Link>
+            <Link href="/bus" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+              Bus
+            </Link>
+            {session ? (
+              <>
+                <Link href="/favourites" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+                  Favourites
+                </Link>
+                <Link href="/notifications" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+                  Alerts
+                </Link>
+                <Link href="/account" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+                  Account
+                </Link>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    signOut();
+                  }}
+                  style={{
+                    background: "none",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--radius)",
+                    padding: "4px 10px",
+                    color: "var(--text-dim)",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <Link href="/login" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--primary)" }}>
+                Sign in
+              </Link>
+            )}
+          </>
         )}
       </nav>
     </header>

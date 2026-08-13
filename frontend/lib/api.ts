@@ -65,7 +65,7 @@ export interface LineStation {
 
 export interface Favourite {
   id: string;
-  favouriteType: "LINE" | "STATION";
+  favouriteType: "LINE" | "STATION" | "BUS_STOP";
   refId: string;
   refLabel: string;
   createdAt: string;
@@ -83,6 +83,20 @@ export interface StationMatch {
   id: string;
   name: string;
   modes: string[];
+}
+
+export interface BusStopMatch {
+  id: string;
+  name: string;
+  towards?: string;
+  stopLetter?: string;
+}
+
+export interface BusTime {
+  route: string;
+  destination: string;
+  minutesAway: number;
+  secondsAway: number;
 }
 
 export interface ArrivalPrediction {
@@ -140,7 +154,7 @@ export const api = {
   getLineStations: (id: string) => request<LineStation[]>(`/lines/${encodeURIComponent(id)}/stations`),
 
   getFavourites: () => request<Favourite[]>("/favourites"),
-  addFavourite: (body: { favouriteType: "LINE" | "STATION"; refId: string; refLabel: string }) =>
+  addFavourite: (body: { favouriteType: "LINE" | "STATION" | "BUS_STOP"; refId: string; refLabel: string }) =>
     request<Favourite>("/favourites", { method: "POST", body: JSON.stringify(body) }),
   removeFavourite: (id: string) => request<void>(`/favourites/${id}`, { method: "DELETE" }),
 
@@ -158,4 +172,10 @@ export const api = {
 
   getArrivals: (stationId: string) =>
     request<ArrivalPrediction[]>(`/stations/${encodeURIComponent(stationId)}/arrivals`),
+
+  // Bus section — deliberately separate from the train endpoints above,
+  // this app treats buses as their own distinct area rather than mixing
+  // modes together.
+  searchBusStops: (query: string) => request<BusStopMatch[]>(`/bus/search?q=${encodeURIComponent(query)}`),
+  getBusTimes: (stopId: string) => request<BusTime[]>(`/bus/${encodeURIComponent(stopId)}/times`),
 };

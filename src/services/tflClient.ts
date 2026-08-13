@@ -11,6 +11,7 @@ import type {
   TflArrivalPrediction,
   TflStopPointDetail,
   TflLineStopPoint,
+  TflAdditionalProperty,
 } from "../types/tfl";
 
 const TFL_BASE_URL = "https://api.tfl.gov.uk";
@@ -319,4 +320,92 @@ export async function getLineStopPoints(lineId: string): Promise<TflLineStopPoin
 
   const stopPoints = (await res.json()) as TflLineStopPoint[];
   return stopPoints.map((s) => ({ id: s.id, commonName: s.commonName, lat: s.lat, lon: s.lon }));
+}
+
+// Searches for bus stops by name, kept entirely separate from
+// searchStations (train modes) since the two are deliberately different
+// sections of the app. Arrivals themselves reuse the existing
+// getArrivals function unchanged, since that endpoint isn't mode specific
+// — it returns whatever's predicted for the given stop id regardless of
+// whether it's a train station or a bus stop.
+export async function searchBusStops(query: string): Promise<TflStopPointMatch[]> {
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/Search/${encodeURIComponent(query)}`);
+  url.searchParams.set("modesFilter", "bus");
+  appendAppKey(url);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`TfL bus stop search failed: ${res.status} ${res.statusText}`);
+  }
+
+  const data = (await res.json()) as TflStopPointSearchResponse;
+  // Confirmed against a live response: combined interchange hubs (e.g.
+  // covering tube, bus, and national rail together at one location) also
+  // include "bus" in their modes list, but aren't an actual individual
+  // bus stop and have no direction info. Genuine bus stops only ever have
+  // "bus" as their sole mode, so filtering on that excludes the hub
+  // entries that were causing missing "towards" data.
+  return data.matches.filter((m) => m.modes.length === 1 && m.modes[0] === "bus");
+}
+
+// Enriches a bus stop search result with its stop letter — only available
+// on the full StopPoint detail, not the lightweight search response, so
+// this is a second call per result. Confirmed against a live response:
+// the field is genuinely called "stopLetter" on the full detail.
+function extractTowards(props?: TflAdditionalProperty[]): string | undefined {
+  return props?.find((p) => p.category === "Direction" && p.key === "Towards")?.value;
+}
+
+export interface ResolvedBusStop {
+  id: string;
+  name: string;
+  stopLetter?: string;
+  towards?: string;
+}
+
+// Resolves one bus stop search result into one or more real, individually
+// selectable stops. Confirmed against a live response: TfL's search
+// sometimes returns a grouped parent id covering several real physical
+// stops (e.g. both directions of a stop pair), and the stop letter and
+// direction only exist on the children underneath that parent, never on
+// the parent itself — asking the parent directly for this data silently
+// returns nothing, which is what an earlier, narrower version of this
+// function was doing wrong. If the id turns out to already be an
+// individual stop with no children, this just returns that one stop's own
+// details instead.
+export async function resolveBusStopDetails(id: string): Promise<ResolvedBusStop[]> {
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(id)}`);
+  appendAppKey(url);
+
+  try {
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      console.log(`[bus] detail lookup for ${id} failed: ${res.status}`);
+      return [];
+    }
+
+    const detail = (await res.json()) as TflStopPointDetail;
+
+    if (detail.children && detail.children.length > 0) {
+      console.log(`[bus] ${id} is a grouped parent with ${detail.children.length} children`);
+      return detail.children.map((child) => ({
+        id: child.id,
+        name: child.commonName ?? detail.commonName ?? id,
+        stopLetter: child.stopLetter,
+        towards: extractTowards(child.additionalProperties),
+      }));
+    }
+
+    return [
+      {
+        id: detail.id,
+        name: detail.commonName ?? id,
+        stopLetter: detail.stopLetter,
+        towards: extractTowards(detail.additionalProperties),
+      },
+    ];
+  } catch (err) {
+    console.log(`[bus] detail lookup for ${id} threw`, err);
+    return [];
+  }
 }

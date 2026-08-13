@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { AuthGuard } from "@/components/AuthGuard";
 import { HeaderNav } from "@/components/HeaderNav";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 const displayFont = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${displayFont.variable} ${bodyFont.variable}`}>
+        <ThemeSwitcher />
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px 80px" }}>
           <AuthProvider>
             <HeaderNav />

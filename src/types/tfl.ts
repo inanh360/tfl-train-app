@@ -54,6 +54,13 @@ export interface TflStopPointMatch {
   modes: string[];
   lat?: number;
   lon?: number;
+  // For bus stops specifically — confirmed against a live TfL response,
+  // this is what actually disambiguates multiple stops sharing one
+  // station name, e.g. "Angel Or Kings Cross" vs "Blackfriars Or
+  // Waterloo" for two different "Farringdon Station" bus stops. An
+  // earlier attempt guessed a field called "indicator" here, which
+  // turned out not to exist in the real response at all.
+  towards?: string;
 }
 
 export interface TflStopPointSearchResponse {
@@ -155,14 +162,27 @@ export interface TflArrivalPrediction {
   timestamp: string;
 }
 
+export interface TflAdditionalProperty {
+  category: string;
+  key: string;
+  value: string;
+}
+
 // A StopPoint's own details. For a hub-type StopPoint specifically, this
 // should include its constituent child stations — each a real, separately
 // queryable StopPoint that arrivals data actually attaches to, unlike the
-// hub id itself.
+// hub id itself. The same "parent groups several real children" shape
+// also applies to bus stop pairs specifically — confirmed against a live
+// response, the stop letter and direction only exist on the children,
+// never on the parent grouping.
 export interface TflStopPointDetail {
   id: string;
+  commonName?: string;
   hubNaptanCode?: string;
-  children?: { id: string; commonName?: string; modes?: string[] }[];
+  indicator?: string;
+  stopLetter?: string;
+  additionalProperties?: TflAdditionalProperty[];
+  children?: TflStopPointDetail[];
 }
 
 // Normalised shape we actually work with internally, one row per

@@ -13,6 +13,15 @@
   --red: #e0483e;
   --green: #35d074;
   --warning: #e0b13e;
+  /* Bus section theme. --bus-accent matches the same saturation and
+     lightness as --primary's blue, just shifted to red hue, so the two
+     sections feel like siblings rather than unrelated palettes. The
+     background trio mirrors --bg/--bg-raised/--bg-raised-hover's relative
+     lightness steps, just tinted dark maroon instead of near-black. */
+  --bus-accent: #c24d4d;
+  --bus-bg: #221010;
+  --bus-bg-raised: #331818;
+  --bus-bg-raised-hover: #3d1c1c;
 
   --font-display: "IBM Plex Mono", ui-monospace, monospace;
   --font-body: "IBM Plex Sans", -apple-system, sans-serif;
@@ -31,6 +40,18 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  transition: background-color 200ms ease;
+}
+
+body.bus-theme {
+  /* Redefining --primary here (rather than changing every component
+     individually) means every existing var(--primary) reference across
+     the whole app automatically becomes red while on /bus, and reverts
+     automatically on leaving it — one override point, not one per page. */
+  --primary: var(--bus-accent);
+  --bg-raised: var(--bus-bg-raised);
+  --bg-raised-hover: var(--bus-bg-raised-hover);
+  background: var(--bus-bg);
 }
 
 body {
