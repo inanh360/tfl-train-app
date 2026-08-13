@@ -258,6 +258,46 @@ export async function findNearbyStations(lat: number, lon: number, radiusMetres 
     .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
 }
 
+// Bus equivalent of findNearbyStations above, kept as its own separate
+// function rather than sharing one with a mode parameter, matching how
+// the rest of the bus section is deliberately kept apart from the train
+// code throughout this app. "NaptanPublicBusCoachTram" is confirmed as a
+// real value against a live TfL response elsewhere in this codebase (the
+// bus stop letter lookup), but that was confirmed as a stopType on
+// /StopPoint, not specifically as a type value on /Place — /Place has
+// already been found to use a narrower, different type vocabulary than
+// /StopPoint once (it rejected "NaptanDlrStation"), so this specific
+// value is a reasonable extension of what's confirmed, not a fully
+// verified one. If it's rejected the same way, the error TfL sends back
+// names exactly which value it doesn't recognise, same as it did last
+// time.
+export async function findNearbyBusStops(lat: number, lon: number, radiusMetres = 500): Promise<TflNearbyStopPoint[]> {
+  const url = new URL(`${TFL_BASE_URL}/Place`);
+  url.searchParams.set("lat", String(lat));
+  url.searchParams.set("lon", String(lon));
+  url.searchParams.set("radius", String(radiusMetres));
+  url.searchParams.set("type", "NaptanPublicBusCoachTram");
+  appendAppKey(url);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`TfL nearby bus stops request failed: ${res.status} ${res.statusText} — ${body}`);
+  }
+
+  const data = await res.json();
+  const stopPoints: TflNearbyStopPoint[] = (data as { places?: TflNearbyStopPoint[] })?.places ?? [];
+  console.log(`[nearby-bus] TfL returned ${stopPoints.length} raw places before filtering`);
+
+  return stopPoints
+    .filter((s) => s.modes.includes("bus"))
+    .map((s) => ({
+      ...s,
+      distance: s.lat != null && s.lon != null ? haversineMetres(lat, lon, s.lat, s.lon) : s.distance,
+    }))
+    .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+}
+
 // Some large interchange stations (Stratford, Bank/Monument, others) are
 // split across several separate StopPoint ids in TfL's data, each
 // covering only some of the lines at that station, with a shared

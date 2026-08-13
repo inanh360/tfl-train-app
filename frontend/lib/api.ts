@@ -129,6 +129,22 @@ export interface NearbyResult {
   bestStationId: string | null;
 }
 
+export interface NearbyBusStop {
+  id: string;
+  name: string;
+  lat: number | null;
+  lon: number | null;
+  distanceMetres: number | null;
+  walkMinutes: number;
+  nextBuses: { route: string; destination: string; minutesAway: number }[];
+  bestReachableMinutes: number | null;
+}
+
+export interface NearbyBusResult {
+  stops: NearbyBusStop[];
+  bestStopId: string | null;
+}
+
 export interface JourneyLeg {
   mode: string;
   line: string;
@@ -171,6 +187,9 @@ export const api = {
 
   getNearbyStations: (lat: number, lon: number) =>
     request<NearbyResult>(`/nearby?lat=${lat}&lon=${lon}`),
+
+  getNearbyBusStops: (lat: number, lon: number) =>
+    request<NearbyBusResult>(`/bus/nearby?lat=${lat}&lon=${lon}`),
 
   getArrivals: (stationId: string) =>
     request<ArrivalPrediction[]>(`/stations/${encodeURIComponent(stationId)}/arrivals`),

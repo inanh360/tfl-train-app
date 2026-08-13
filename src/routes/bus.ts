@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { searchBusStops, getArrivals, resolveBusStopDetails } from "../services/tflClient";
+import { searchBusStops, getArrivals, resolveBusStopDetails, findNearbyBusStops } from "../services/tflClient";
 
 export const busRouter = Router();
 
@@ -9,6 +9,10 @@ export const busRouter = Router();
 // expand into more than one result if it turns out to be a grouped parent
 // stop, so the final count can exceed this.
 const MAX_RESOLVED_MATCHES = 8;
+
+// Same reasoning as the train nearby-stations feature — see routes/nearby.ts.
+const WALK_SPEED_METRES_PER_SECOND = 1.3;
+const MAX_STOPS_TO_CHECK = 6;
 
 // GET /bus/search?q=oxford — bus stop search, kept entirely separate from
 // /stations/search (train modes only), since this app deliberately treats
@@ -49,5 +53,67 @@ busRouter.get("/:id/times", async (req, res) => {
   } catch (err) {
     console.error("[bus/:id/times] failed", err);
     res.status(502).json({ error: "Failed to get live bus times from TfL" });
+  }
+});
+
+// GET /bus/nearby?lat=&lon=&radius= — nearby bus stops and the soonest
+// bus you could actually catch at each, accounting for walking time.
+// Bus stops sit much closer together than train stations, so this
+// defaults to a smaller radius than the train version.
+busRouter.get("/nearby", async (req, res) => {
+  const lat = Number(req.query.lat);
+  const lon = Number(req.query.lon);
+  const radius = req.query.radius ? Number(req.query.radius) : 500;
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    res.status(400).json({ error: "Query params 'lat' and 'lon' are required and must be numbers" });
+    return;
+  }
+
+  try {
+    const stops = (await findNearbyBusStops(lat, lon, radius)).slice(0, MAX_STOPS_TO_CHECK);
+
+    const results = await Promise.all(
+      stops.map(async (stop) => {
+        const walkSeconds = stop.distance != null ? stop.distance / WALK_SPEED_METRES_PER_SECOND : 0;
+        const walkMinutes = Math.round(walkSeconds / 60);
+
+        let predictions: Awaited<ReturnType<typeof getArrivals>>;
+        try {
+          predictions = await getArrivals(stop.id);
+        } catch {
+          predictions = [];
+        }
+
+        const reachable = predictions.filter((p) => p.timeToStation >= walkSeconds);
+        const bestReachable = reachable[0];
+
+        return {
+          id: stop.id,
+          name: stop.commonName,
+          lat: stop.lat ?? null,
+          lon: stop.lon ?? null,
+          distanceMetres: stop.distance ?? null,
+          walkMinutes,
+          nextBuses: predictions.slice(0, 5).map((p) => ({
+            route: p.lineName,
+            destination: p.destinationName,
+            minutesAway: Math.round(p.timeToStation / 60),
+          })),
+          bestReachableMinutes: bestReachable ? Math.round(bestReachable.timeToStation / 60) : null,
+        };
+      })
+    );
+
+    const withReachable = results.filter((r) => r.bestReachableMinutes !== null);
+    const best =
+      withReachable.length > 0
+        ? withReachable.reduce((a, b) => (a.bestReachableMinutes! < b.bestReachableMinutes! ? a : b))
+        : null;
+
+    res.json({ stops: results, bestStopId: best?.id ?? null });
+  } catch (err) {
+    console.error("[bus/nearby] failed", err);
+    res.status(502).json({ error: "Failed to find nearby bus stops via TfL" });
   }
 });
