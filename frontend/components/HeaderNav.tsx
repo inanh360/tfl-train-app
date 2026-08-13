@@ -64,16 +64,16 @@ export function HeaderNav() {
         {isBusSection ? (
           <>
             <Link href="/bus/times" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
-              Live departures
+              Departures
+            </Link>
+            <Link href="/" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
+              Train
             </Link>
             {session && (
               <Link href="/bus/favourites" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
                 Favourites
               </Link>
             )}
-            <Link href="/" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: "var(--text-dim)" }}>
-              Train
-            </Link>
             {session ? (
               <button
                 onClick={() => {
