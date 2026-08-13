@@ -56,6 +56,13 @@ export interface Line {
   statusEvents: LineStatusEvent[];
 }
 
+export interface LineStation {
+  id: string;
+  commonName: string;
+  lat?: number;
+  lon?: number;
+}
+
 export interface Favourite {
   id: string;
   favouriteType: "LINE" | "STATION";
@@ -129,6 +136,8 @@ export interface Journey {
 
 export const api = {
   getLines: () => request<Line[]>("/lines"),
+  getLine: (id: string) => request<Line>(`/lines/${encodeURIComponent(id)}`),
+  getLineStations: (id: string) => request<LineStation[]>(`/lines/${encodeURIComponent(id)}/stations`),
 
   getFavourites: () => request<Favourite[]>("/favourites"),
   addFavourite: (body: { favouriteType: "LINE" | "STATION"; refId: string; refLabel: string }) =>

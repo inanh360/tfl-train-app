@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Line } from "@/lib/api";
 import { StatusDot } from "@/components/StatusDot";
 import { cleanBranchLabel } from "@/lib/format";
@@ -42,7 +43,12 @@ export function LineRow({
         style={{ width: 4, height: 20, borderRadius: 2, background: line.colourHex, flexShrink: 0 }}
       />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600 }}>{line.name}</div>
+        <Link
+          href={`/${line.id}`}
+          style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", textDecoration: "none" }}
+        >
+          {line.name}
+        </Link>
         {active.length === 1 && (
           <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
             {active[0].branchLabel && (

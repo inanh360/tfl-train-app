@@ -10,6 +10,7 @@ import type {
   TflNearbyStopPoint,
   TflArrivalPrediction,
   TflStopPointDetail,
+  TflLineStopPoint,
 } from "../types/tfl";
 
 const TFL_BASE_URL = "https://api.tfl.gov.uk";
@@ -301,4 +302,21 @@ export async function getArrivals(stationId: string): Promise<TflArrivalPredicti
 
   console.log(`[arrivals] merged ${merged.length} predictions across ${children.length} children for hub ${hubId}`);
   return merged.sort((a, b) => a.timeToStation - b.timeToStation);
+}
+
+// Full ordered list of stations served by a line, e.g. for building a
+// dedicated per-line page. TfL's own forum threads note the ordering
+// from this endpoint isn't always perfectly reliable for branching lines,
+// so treat the order as a reasonable guide rather than guaranteed exact.
+export async function getLineStopPoints(lineId: string): Promise<TflLineStopPoint[]> {
+  const url = new URL(`${TFL_BASE_URL}/Line/${encodeURIComponent(lineId)}/StopPoints`);
+  appendAppKey(url);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`TfL line stop points request failed: ${res.status} ${res.statusText}`);
+  }
+
+  const stopPoints = (await res.json()) as TflLineStopPoint[];
+  return stopPoints.map((s) => ({ id: s.id, commonName: s.commonName, lat: s.lat, lon: s.lon }));
 }

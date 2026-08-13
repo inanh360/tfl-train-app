@@ -181,3 +181,10 @@ export interface NormalisedLineStatus {
   branchLabel: string | null;
   affectedStations: { name: string; naptanId: string | null }[];
 }
+
+export interface TflLineStopPoint {
+  id: string;
+  commonName: string;
+  lat?: number;
+  lon?: number;
+}
