@@ -35,3 +35,20 @@ notificationsRouter.post("/:id/read", async (req, res) => {
   await prisma.notification.update({ where: { id: req.params.id }, data: { read: true } });
   res.status(204).send();
 });
+
+// POST /notifications/read-all — marks every unread notification as read
+// for the signed in user. Scoped to req.userId in the query itself, same
+// pattern as the DELETE route below, so there's no way this could ever
+// touch another user's rows.
+notificationsRouter.post("/read-all", async (req, res) => {
+  await prisma.notification.updateMany({ where: { userId: req.userId!, read: false }, data: { read: true } });
+  res.status(204).send();
+});
+
+// DELETE /notifications — clears every notification for the signed in
+// user. Scoped to req.userId in the query itself, not just checked
+// afterward, so there's no way this could ever touch another user's rows.
+notificationsRouter.delete("/", async (req, res) => {
+  await prisma.notification.deleteMany({ where: { userId: req.userId! } });
+  res.status(204).send();
+});

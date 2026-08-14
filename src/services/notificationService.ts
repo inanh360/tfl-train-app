@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import type { LineStatusEvent, AffectedStation, Line } from "@prisma/client";
+import { sendPushToUser } from "./pushService";
 
 type EventWithRelations = LineStatusEvent & {
   line: Line;
@@ -54,9 +55,8 @@ function buildMessage(event: EventWithRelations): string {
 }
 
 // In-app delivery: write a Notification-shaped row that the frontend polls
-// (or subscribes to via Supabase realtime later). Swap the body of this
-// function for a Web Push send when you move to push notifications — the
-// call site in pollingService.ts doesn't need to change.
+// (or subscribes to via Supabase realtime later), and fire a real push
+// notification alongside it to every device the user has subscribed on.
 export async function notifyStatusChange(event: EventWithRelations): Promise<void> {
   const message = buildMessage(event);
 
@@ -85,6 +85,8 @@ export async function notifyStatusChange(event: EventWithRelations): Promise<voi
         read: false,
       },
     });
+
+    await sendPushToUser(fav.userId, "Line Status", message);
   }
 
   await prisma.lineStatusEvent.update({

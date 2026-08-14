@@ -109,3 +109,17 @@ model Notification {
 
   @@index([userId, read])
 }
+
+// One row per browser/device a user has enabled push notifications on.
+// A user can have several (phone, laptop, etc), each with their own
+// subscription that needs its own push sent to it.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String // Supabase Auth user id (uuid), no local FK
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

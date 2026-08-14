@@ -180,6 +180,7 @@ export const api = {
 
   getNotifications: () => request<Notification[]>("/notifications"),
   markNotificationRead: (id: string) => request<void>(`/notifications/${id}/read`, { method: "POST" }),
+  markAllNotificationsRead: () => request<void>("/notifications/read-all", { method: "POST" }),
 
   searchStations: (query: string) => request<StationMatch[]>(`/stations/search?q=${encodeURIComponent(query)}`),
   planJourney: (from: string, to: string) =>
@@ -199,4 +200,9 @@ export const api = {
   // modes together.
   searchBusStops: (query: string) => request<BusStopMatch[]>(`/bus/search?q=${encodeURIComponent(query)}`),
   getBusTimes: (stopId: string) => request<BusTime[]>(`/bus/${encodeURIComponent(stopId)}/times`),
+
+  subscribePush: (subscription: PushSubscriptionJSON) =>
+    request<{ ok: boolean }>("/push/subscribe", { method: "POST", body: JSON.stringify(subscription) }),
+  unsubscribePush: (endpoint: string) =>
+    request<void>("/push/subscribe", { method: "DELETE", body: JSON.stringify({ endpoint }) }),
 };

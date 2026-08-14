@@ -19,6 +19,11 @@ export default function NotificationsPage() {
     setNotifications((prev) => prev?.map((n) => (n.id === id ? { ...n, read: true } : n)) ?? null);
   }
 
+  async function markAllRead() {
+    await api.markAllNotificationsRead();
+    setNotifications((prev) => prev?.map((n) => ({ ...n, read: true })) ?? null);
+  }
+
   if (error) {
     return <p style={{ color: "var(--red)", fontSize: 13 }}>{error}</p>;
   }
@@ -27,11 +32,31 @@ export default function NotificationsPage() {
     return <p style={{ color: "var(--text-dim)", fontFamily: "var(--font-display)", fontSize: 13 }}>Loading…</p>;
   }
 
+  const hasUnread = notifications.some((n) => !n.read);
+
   return (
     <div>
-      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 13, color: "var(--text-dim)", fontWeight: 500, marginBottom: 16 }}>
-        ALERTS
-      </h1>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 13, color: "var(--text-dim)", fontWeight: 500, margin: 0 }}>
+          ALERTS
+        </h1>
+        {hasUnread && (
+          <button
+            onClick={markAllRead}
+            style={{
+              background: "none",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius)",
+              padding: "5px 10px",
+              color: "var(--text-dim)",
+              cursor: "pointer",
+              fontSize: 12,
+            }}
+          >
+            Mark all as read
+          </button>
+        )}
+      </div>
 
       {notifications.length === 0 ? (
         <EmptyState />

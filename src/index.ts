@@ -9,6 +9,7 @@ import { journeyRouter } from "./routes/journey";
 import { accountRouter } from "./routes/account";
 import { nearbyRouter } from "./routes/nearby";
 import { busRouter } from "./routes/bus";
+import { pushRouter } from "./routes/push";
 import { generalLimiter, tflProxyLimiter } from "./middleware/rateLimiters";
 
 const app = express();
@@ -38,6 +39,7 @@ app.use("/stations", tflProxyLimiter, stationsRouter);
 app.use("/journey", tflProxyLimiter, journeyRouter);
 app.use("/nearby", tflProxyLimiter, nearbyRouter);
 app.use("/bus", tflProxyLimiter, busRouter);
+app.use("/push", pushRouter);
 app.use("/account", accountRouter);
 
 app.listen(PORT, () => {
