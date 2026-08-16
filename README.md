@@ -1,20 +1,22 @@
 # Line Status
 
-A live status board, journey planner, and disruption alert app for London train travel, built on data from TfL's public API.
+A live status board, journey planner, and disruption alert app for London transport, built on data from TfL's public API. Covers every London train service and, as a deliberately separate section with its own look, London buses too.
 
 Live at [linestatus.co.uk](https://linestatus.co.uk)
 
 ## What it does
 
-The app currently focuses on three things.
-
 **Live line status.** Every train line in London, tube, DLR, Overground, and the Elizabeth line, shown with its current status. Delays and disruptions show the actual affected branch and TfL's own reason text, not just a generic warning.
 
 **Journey planning.** Train only routes between two stations, using TfL's own journey planner, with disrupted legs flagged clearly.
 
-**Live departures.** Real time next train predictions for any station, refreshing automatically.
+**Live departures.** Real time next train predictions for any station, refreshing automatically. The same live departures board exists for buses too, kept as its own separate part of the app with its own theme.
 
-On top of this, signed in users can favourite specific lines or stations and get notified when something they care about is disrupted. A background service checks TfL's live data every 90 seconds and only sends a notification when something genuinely changes, not on every check. A favourited station's preview shows only trains on the lines that person has also favourited, rather than just whatever happens to be soonest, so a station served by five lines does not get dominated by whichever one runs most often.
+**Find the best nearby station.** Uses the browser's own location to find the closest stations, working out which one is actually fastest to use once real walking time and the next train's actual departure time are both accounted for, not just whichever is geographically closest. Available for both trains and buses.
+
+**Push notifications.** Signed in users can favourite specific lines, stations, and bus stops, and get a real notification the moment something they're tracking is disrupted, even with the site closed, not just an alert that only shows up next time the app happens to be open. A background service checks TfL's live data every 90 seconds and only sends a notification when something genuinely changes, not on every check.
+
+A favourited station's preview shows only trains on the lines that person has also favourited, rather than just whatever happens to be soonest, so a station served by five lines does not get dominated by whichever one runs most often.
 
 Large interchange stations, the ones served by several different lines at once, are handled properly too. TfL represents a station like this as several separate ids internally rather than one, so getting a complete picture means finding and merging results across all of them rather than trusting whichever single id a search happens to return.
 
@@ -42,7 +44,7 @@ Most of what makes this worth showing isn't the frontend, it's everything undern
 Next.js, React, TypeScript. Deployed as a Docker container, not on a third party hosting platform.
 
 **Backend**
-Node.js, Express, TypeScript. A separate background service polls TfL's API and manages disruption state and notifications.
+Node.js, Express, TypeScript. A separate background service polls TfL's API and manages disruption state and notifications. Push notifications are sent using the standard Web Push protocol, with a service worker on the frontend to receive and display them even when the site itself isn't open.
 
 **Database and auth**
 PostgreSQL, managed through Prisma. User authentication and magic link sign in is handled by Supabase Auth, verified independently on the backend using a proper server side token check, not trusted blindly from the frontend.

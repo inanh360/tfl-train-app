@@ -282,8 +282,34 @@ The two items below were caught before they ever caused a real failure, while pr
 
 **Fix:** Replaced the hub based lookup with the child based one described above. Confirmed locally that Stratford now returns arrivals across all of its lines before deploying it.
 
+### 32. Finding nearby stations did not work at all, across several attempts
+
+**Where:** `src/services/tflClient.ts`, `src/routes/nearby.ts`
+
+**What happened:** A feature to find the nearest stations to a person's live location was attempted early on, shelved as a known gap after repeated failures, and picked back up later once other parts of the API had been better understood. Every part of the request turned out to be wrong in some way, one at a time.
+
+The endpoint itself was wrong. The first attempts called `/StopPoint` with a location and a radius, which repeatedly returned a plain "resource not found" with no useful detail. The real endpoint for this is `/Place`, a completely different part of the API, confirmed against TfL's own current API specification and a direct answer on TfL's public forum to someone hitting this exact same dead end.
+
+The parameter names were wrong, more than once. Several different naming conventions appear across TfL's own documentation, older example code, and generated API clients, including some that contradict each other. The one that actually worked, plain `lat` and `lon`, was only confirmed by finding a real forum answer that had already fixed this exact problem for someone else.
+
+One of the requested station types was wrong. TfL rejected the request outright once the endpoint and parameters were correct, with a clear message naming the exact value it did not recognise. `/Place` turned out to use a narrower list of valid types than `/StopPoint` does elsewhere in this app, even though the two endpoints share some of the same naming.
+
+The shape of the response was wrong, twice. The working assumption was that results would come back as a plain list, based on how the official specification described it. The real response nests everything inside a field called `places`, which only became clear by logging the actual raw response and reading it directly rather than continuing to guess.
+
+**Fix:** Corrected one at a time, each confirmed against a real response rather than assumed, until real station results came back correctly. This is the single most persistent bug in this project, and the way it was eventually solved is the point worth keeping here, stop guessing at documentation and third party examples once they start contradicting each other, and instead read what the live service actually says back.
+
+### 33. A new frontend environment variable was forgotten in two of the four places it needed to be
+
+**Where:** `docker-compose.yml`, `frontend/Dockerfile`
+
+**What happened:** Adding push notifications needed a new public key available to the frontend at build time. It was added to the local frontend environment file, and the feature failed silently with a generic "not configured" message once deployed. The value baked into a Docker build has to be explicitly declared in two separate places, the Dockerfile itself and the compose file that builds it, neither of which happens automatically just because a new environment variable exists somewhere. The existing frontend build arguments for the API address and Supabase keys had this same requirement, it was simply easy to forget it applied to every new one added later too.
+
+A second, related mistake happened at the same time: the value was only added to the frontend's own local environment file, not the project's root environment file. Docker Compose reads its substitutions from the root file specifically, not from a file that only matters when running the frontend outside of Docker altogether.
+
+**Fix:** Declared the new variable in both the Dockerfile and the compose file's build arguments, and added it to the root environment file rather than only the frontend specific one. Worth remembering as a checklist for any future frontend environment variable, not just this one.
+
 ## Summary
 
-Thirty one items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Twenty one were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
+Thirty three items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Twenty three were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
 
-Several of these, in particular bug 1, bug 12, bug 18, bug 26, and bug 31, are the kind of issue that would be easy to miss without deliberately testing the real behaviour of the system rather than assuming it works because the code looks correct. Bug 31 in particular is a reminder that the first fix for a real problem is not always the right one, and that testing an assumption locally before deploying it is what actually caught that the first attempt had made things worse rather than better.
+Several of these, in particular bug 1, bug 12, bug 18, bug 26, bug 31, and bug 32, are the kind of issue that would be easy to miss without deliberately testing the real behaviour of the system rather than assuming it works because the code looks correct. Bug 32 in particular took the longest of anything in this project to actually resolve, and the lesson from it was less about any single fix and more about when to stop trusting documentation and start trusting a real response instead.
