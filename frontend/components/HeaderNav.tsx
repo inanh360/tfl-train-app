@@ -210,10 +210,55 @@ export function HeaderNav() {
         )}
       </nav>
 
-      {/* Desktop: grouped dropdowns instead of one long flat row. Only
-          applies to the train nav — the bus section already has its own
-          short, simplified nav that doesn't need grouping. */}
-      {!isBusSection && (
+      {/* Desktop: grouped dropdowns instead of one long flat row, for
+          both sections — each with its own grouping since the bus
+          section's links don't map onto the train section's groups. */}
+      {isBusSection ? (
+        <nav className="nav-desktop-groups">
+          <NavDropdown
+            label="Travel"
+            isOpen={openDropdown === "travel"}
+            onToggle={() => toggleDropdown("travel")}
+            onClose={() => setOpenDropdown((current) => (current === "travel" ? null : current))}
+            links={[
+              { href: "/bus/times", text: "Departures" },
+              { href: "/bus/nearby", text: "Near me" },
+            ]}
+          />
+          {session && (
+            <NavDropdown
+              label="My Bus"
+              isOpen={openDropdown === "myline"}
+              onToggle={() => toggleDropdown("myline")}
+              onClose={() => setOpenDropdown((current) => (current === "myline" ? null : current))}
+              links={[{ href: "/bus/favourites", text: "Favourites" }]}
+            />
+          )}
+          <Link href="/" style={{ textDecoration: "none", color: "var(--text-dim)", fontSize: 13 }}>
+            Train
+          </Link>
+          {session ? (
+            <button
+              onClick={signOut}
+              style={{
+                background: "none",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+                padding: "4px 10px",
+                color: "var(--text-dim)",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link href="/login" style={{ textDecoration: "none", color: "var(--primary)", fontSize: 13 }}>
+              Sign in
+            </Link>
+          )}
+        </nav>
+      ) : (
         <nav className="nav-desktop-groups">
           <NavDropdown
             label="Travel"
