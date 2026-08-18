@@ -6,11 +6,67 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 
+// One open dropdown at a time — opening one closes the other, rather than
+// tracking two independent booleans that could both end up open together.
+type OpenDropdown = "travel" | "myline" | null;
+
+function NavDropdown({
+  label,
+  isOpen,
+  onToggle,
+  onClose,
+  links,
+}: {
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  links: { href: string; text: string }[];
+}) {
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={onToggle}
+        onBlur={() => setTimeout(onClose, 150)} // delay so a click on a link inside registers before the panel closes
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        style={{
+          background: "none",
+          border: "none",
+          padding: 0,
+          color: "var(--text-dim)",
+          fontSize: 13,
+          fontFamily: "inherit",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        {label}
+        <span style={{ fontSize: 10, marginTop: 1 }}>{isOpen ? "▴" : "▾"}</span>
+      </button>
+      <div className={`nav-dropdown-panel${isOpen ? " nav-dropdown-open" : ""}`}>
+        {links.map((link) => (
+          <Link key={link.href} href={link.href} style={{ textDecoration: "none", color: "var(--text-dim)", fontSize: 13 }}>
+            {link.text}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function HeaderNav() {
   const { session, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<OpenDropdown>(null);
   const pathname = usePathname();
   const isBusSection = pathname.startsWith("/bus");
+
+  function toggleDropdown(which: OpenDropdown) {
+    setOpenDropdown((current) => (current === which ? null : which));
+  }
 
   return (
     <header
@@ -60,6 +116,7 @@ export function HeaderNav() {
         {menuOpen ? "✕" : "☰"}
       </button>
 
+      {/* Mobile: same flat hamburger list as before, entirely unchanged. */}
       <nav className={`nav-links${menuOpen ? " nav-links-open" : ""}`} style={{ fontSize: 13 }}>
         {isBusSection ? (
           <>
@@ -152,6 +209,61 @@ export function HeaderNav() {
           </>
         )}
       </nav>
+
+      {/* Desktop: grouped dropdowns instead of one long flat row. Only
+          applies to the train nav — the bus section already has its own
+          short, simplified nav that doesn't need grouping. */}
+      {!isBusSection && (
+        <nav className="nav-desktop-groups">
+          <NavDropdown
+            label="Travel"
+            isOpen={openDropdown === "travel"}
+            onToggle={() => toggleDropdown("travel")}
+            onClose={() => setOpenDropdown((current) => (current === "travel" ? null : current))}
+            links={[
+              { href: "/departures", text: "Departures" },
+              { href: "/journey", text: "Plan journey" },
+              { href: "/nearby", text: "Near me" },
+            ]}
+          />
+          {session && (
+            <NavDropdown
+              label="My Line"
+              isOpen={openDropdown === "myline"}
+              onToggle={() => toggleDropdown("myline")}
+              onClose={() => setOpenDropdown((current) => (current === "myline" ? null : current))}
+              links={[
+                { href: "/favourites", text: "Favourites" },
+                { href: "/notifications", text: "Alerts" },
+                { href: "/account", text: "Account" },
+              ]}
+            />
+          )}
+          <Link href="/bus" style={{ textDecoration: "none", color: "var(--text-dim)", fontSize: 13 }}>
+            Bus
+          </Link>
+          {session ? (
+            <button
+              onClick={signOut}
+              style={{
+                background: "none",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+                padding: "4px 10px",
+                color: "var(--text-dim)",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link href="/login" style={{ textDecoration: "none", color: "var(--primary)", fontSize: 13 }}>
+              Sign in
+            </Link>
+          )}
+        </nav>
+      )}
     </header>
   );
 }

@@ -121,6 +121,54 @@ button {
   display: none;
 }
 
+/* Desktop uses grouped dropdowns (Travel / My Line / Bus) instead of one
+   long flat row of links, since the flat row got cluttered as more
+   sections were added. Mobile keeps the original flat hamburger list
+   entirely unchanged below the breakpoint. */
+.nav-desktop-groups {
+  display: none;
+}
+
+.nav-dropdown-panel {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  padding: 8px;
+  min-width: 160px;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  z-index: 20;
+}
+
+.nav-dropdown-panel.nav-dropdown-open {
+  display: flex;
+}
+
+.nav-dropdown-panel a {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+}
+
+.nav-dropdown-panel a:hover {
+  background: var(--bg-raised-hover);
+}
+
+@media (min-width: 641px) {
+  .nav-links {
+    display: none;
+  }
+  .nav-desktop-groups {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+}
+
 @media (max-width: 640px) {
   .nav-links {
     display: none;
