@@ -212,91 +212,76 @@ function haversineMetres(lat1: number, lon1: number, lat2: number, lon2: number)
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// TfL retired the /Place endpoint entirely (confirmed via a live 403
+// response reading "This API is retired") after this was originally
+// built against it, breaking both this and the bus equivalent below at
+// once. Rather than depend on TfL having any dedicated "nearby" endpoint
+// at all, both now fetch and cache the full stop list once via
+// /StopPoint/Mode/{modes} — an endpoint already confirmed working
+// elsewhere in this codebase — and compute distance ourselves. Station
+// and stop locations essentially never change, so a long cache is
+// reasonable here in a way it wouldn't be for live status or arrivals.
+const STOP_CACHE_MS = 24 * 60 * 60 * 1000;
+let trainStopCache: { data: TflNearbyStopPoint[]; fetchedAt: number } | null = null;
+let busStopCache: { data: TflNearbyStopPoint[]; fetchedAt: number } | null = null;
+
+const STATION_STOP_TYPES = new Set(["NaptanMetroStation", "NaptanRailStation", "NaptanDlrStation"]);
+
+async function fetchAllStopsForModes(modes: string): Promise<TflNearbyStopPoint[]> {
+  const url = new URL(`${TFL_BASE_URL}/StopPoint/Mode/${modes}`);
+  appendAppKey(url);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`TfL stop list request failed for mode(s) ${modes}: ${res.status} ${res.statusText} — ${body}`);
+  }
+
+  return (await res.json()) as TflNearbyStopPoint[];
+}
+
+async function getAllTrainStops(): Promise<TflNearbyStopPoint[]> {
+  if (trainStopCache && Date.now() - trainStopCache.fetchedAt < STOP_CACHE_MS) return trainStopCache.data;
+
+  const raw = (await fetchAllStopsForModes(TRAIN_MODES.join(","))) as (TflNearbyStopPoint & { stopType?: string })[];
+  // This endpoint returns platform-level entries alongside real stations
+  // for a mode like tube — filtered here to station-level ones, same
+  // filtering used elsewhere in this file for the same reason.
+  const stations = raw.filter((s) => s.stopType && STATION_STOP_TYPES.has(s.stopType));
+  trainStopCache = { data: stations, fetchedAt: Date.now() };
+  console.log(`[nearby] cached ${stations.length} train stations`);
+  return stations;
+}
+
+async function getAllBusStops(): Promise<TflNearbyStopPoint[]> {
+  if (busStopCache && Date.now() - busStopCache.fetchedAt < STOP_CACHE_MS) return busStopCache.data;
+
+  const raw = await fetchAllStopsForModes("bus");
+  busStopCache = { data: raw, fetchedAt: Date.now() };
+  console.log(`[nearby-bus] cached ${raw.length} bus stops`);
+  return raw;
+}
+
 export async function findNearbyStations(lat: number, lon: number, radiusMetres = 1000): Promise<TflNearbyStopPoint[]> {
-  // The correct endpoint for this turned out to be /Place (Place_GetByGeo),
-  // not /StopPoint — an earlier attempt on /StopPoint with several
-  // different parameter name variants (lat/lon, location.lat/location.lon)
-  // all 404d. TfL's own current OpenAPI spec documents /Place for this,
-  // and a direct answer on TfL's forum to someone hitting the exact same
-  // 404 confirmed the working parameter names are plain "lat"/"lon", not
-  // the "placeGeo.lat"/"placeGeo.lon" the same spec's schema names
-  // suggest — the spec's path was right, its exact param naming here
-  // was stale.
-  const url = new URL(`${TFL_BASE_URL}/Place`);
-  url.searchParams.set("lat", String(lat));
-  url.searchParams.set("lon", String(lon));
-  url.searchParams.set("radius", String(radiusMetres));
-  // "NaptanDlrStation" was explicitly rejected by this endpoint with a 400
-  // ("place types are not recognised"), even though it's a valid stopType
-  // elsewhere in the API — /Place evidently uses a narrower type
-  // vocabulary than /StopPoint does. DLR stations may or may not still
-  // appear here under NaptanMetroStation depending on how TfL classifies
-  // them internally — worth confirming against real results before
-  // assuming DLR is fully covered.
-  url.searchParams.set("type", "NaptanMetroStation,NaptanRailStation");
-  appendAppKey(url);
+  const allStops = await getAllTrainStops();
 
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`TfL nearby stations request failed: ${res.status} ${res.statusText} — ${body}`);
-  }
-
-  const data = await res.json();
-  // Confirmed against a live response: /Place wraps results as
-  // { places: [...] }, not { stopPoints: [...] } as originally guessed
-  // and not a bare array as the OpenAPI spec's schema implied either.
-  const stopPoints: TflNearbyStopPoint[] = (data as { places?: TflNearbyStopPoint[] })?.places ?? [];
-  console.log(`[nearby] TfL returned ${stopPoints.length} raw places before filtering`);
-
-  return stopPoints
-    .filter((s) => s.modes.some((mode) => (TRAIN_MODES as readonly string[]).includes(mode)))
-    .map((s) => ({
-      ...s,
-      distance: s.lat != null && s.lon != null ? haversineMetres(lat, lon, s.lat, s.lon) : s.distance,
-    }))
+  return allStops
+    .filter((s) => s.lat != null && s.lon != null)
+    .map((s) => ({ ...s, distance: haversineMetres(lat, lon, s.lat as number, s.lon as number) }))
+    .filter((s) => (s.distance ?? Infinity) <= radiusMetres)
     .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
 }
 
-// Bus equivalent of findNearbyStations above, kept as its own separate
-// function rather than sharing one with a mode parameter, matching how
-// the rest of the bus section is deliberately kept apart from the train
-// code throughout this app. "NaptanPublicBusCoachTram" is confirmed as a
-// real value against a live TfL response elsewhere in this codebase (the
-// bus stop letter lookup), but that was confirmed as a stopType on
-// /StopPoint, not specifically as a type value on /Place — /Place has
-// already been found to use a narrower, different type vocabulary than
-// /StopPoint once (it rejected "NaptanDlrStation"), so this specific
-// value is a reasonable extension of what's confirmed, not a fully
-// verified one. If it's rejected the same way, the error TfL sends back
-// names exactly which value it doesn't recognise, same as it did last
-// time.
 export async function findNearbyBusStops(lat: number, lon: number, radiusMetres = 500): Promise<TflNearbyStopPoint[]> {
-  const url = new URL(`${TFL_BASE_URL}/Place`);
-  url.searchParams.set("lat", String(lat));
-  url.searchParams.set("lon", String(lon));
-  url.searchParams.set("radius", String(radiusMetres));
-  url.searchParams.set("type", "NaptanPublicBusCoachTram");
-  appendAppKey(url);
+  const allStops = await getAllBusStops();
 
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`TfL nearby bus stops request failed: ${res.status} ${res.statusText} — ${body}`);
-  }
-
-  const data = await res.json();
-  const stopPoints: TflNearbyStopPoint[] = (data as { places?: TflNearbyStopPoint[] })?.places ?? [];
-  console.log(`[nearby-bus] TfL returned ${stopPoints.length} raw places before filtering`);
-
-  return stopPoints
-    .filter((s) => s.modes.includes("bus"))
-    .map((s) => ({
-      ...s,
-      distance: s.lat != null && s.lon != null ? haversineMetres(lat, lon, s.lat, s.lon) : s.distance,
-    }))
+  return allStops
+    .filter((s) => s.lat != null && s.lon != null)
+    .map((s) => ({ ...s, distance: haversineMetres(lat, lon, s.lat as number, s.lon as number) }))
+    .filter((s) => (s.distance ?? Infinity) <= radiusMetres)
     .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
 }
+
 
 // Some large interchange stations (Stratford, Bank/Monument, others) are
 // split across several separate StopPoint ids in TfL's data, each
