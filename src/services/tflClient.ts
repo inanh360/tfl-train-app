@@ -231,13 +231,30 @@ async function fetchAllStopsForModes(modes: string): Promise<TflNearbyStopPoint[
   const url = new URL(`${TFL_BASE_URL}/StopPoint/Mode/${modes}`);
   appendAppKey(url);
 
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`TfL stop list request failed for mode(s) ${modes}: ${res.status} ${res.statusText} — ${body}`);
-  }
+  // This is a genuinely large payload (thousands of bus stops
+  // especially), and none of the fetch calls in this file have ever had
+  // an explicit timeout — meaning a slow or hanging TfL response here
+  // would leave the request stuck indefinitely with no error at all,
+  // rather than failing visibly. 20 seconds is generous for a one-time,
+  // long-cached fetch like this one.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
 
-  return (await res.json()) as TflNearbyStopPoint[];
+  try {
+    const res = await fetch(url.toString(), { signal: controller.signal });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`TfL stop list request failed for mode(s) ${modes}: ${res.status} ${res.statusText} — ${body}`);
+    }
+    return (await res.json()) as TflNearbyStopPoint[];
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(`TfL stop list request for mode(s) ${modes} timed out after 20s`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function getAllTrainStops(): Promise<TflNearbyStopPoint[]> {
