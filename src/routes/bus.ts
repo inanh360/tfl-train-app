@@ -12,7 +12,7 @@ const MAX_RESOLVED_MATCHES = 8;
 
 // Same reasoning as the train nearby-stations feature — see routes/nearby.ts.
 const WALK_SPEED_METRES_PER_SECOND = 1.3;
-const MAX_STOPS_TO_CHECK = 6;
+const MAX_STOPS_TO_CHECK = 10;
 
 // GET /bus/search?q=oxford — bus stop search, kept entirely separate from
 // /stations/search (train modes only), since this app deliberately treats
@@ -105,13 +105,19 @@ busRouter.get("/nearby", async (req, res) => {
       })
     );
 
-    const withReachable = results.filter((r) => r.bestReachableMinutes !== null);
+    // Stops with no live predictions at all aren't useful to show —
+    // filtered out here rather than on the frontend, so the "best"
+    // calculation below and the payload itself both only ever consider
+    // stops that actually have something to offer.
+    const withPredictions = results.filter((r) => r.nextBuses.length > 0);
+
+    const withReachable = withPredictions.filter((r) => r.bestReachableMinutes !== null);
     const best =
       withReachable.length > 0
         ? withReachable.reduce((a, b) => (a.bestReachableMinutes! < b.bestReachableMinutes! ? a : b))
         : null;
 
-    res.json({ stops: results, bestStopId: best?.id ?? null });
+    res.json({ stops: withPredictions, bestStopId: best?.id ?? null });
   } catch (err) {
     console.error("[bus/nearby] failed", err);
     res.status(502).json({ error: "Failed to find nearby bus stops via TfL" });
