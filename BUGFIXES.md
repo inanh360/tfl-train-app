@@ -308,8 +308,26 @@ A second, related mistake happened at the same time: the value was only added to
 
 **Fix:** Declared the new variable in both the Dockerfile and the compose file's build arguments, and added it to the root environment file rather than only the frontend specific one. Worth remembering as a checklist for any future frontend environment variable, not just this one.
 
+### 34. TfL retired the endpoint nearby stations and nearby bus stops depended on
+
+**Where:** `src/services/tflClient.ts`
+
+**What happened:** The endpoint that item 32 eventually got working, after a long search for the right path, parameters, and response shape, stopped working entirely some time later. A live request now returns a plain message stating the endpoint has been retired, with a link to TfL's own forum for alternatives. Both nearby stations and nearby bus stops broke at the same moment, since both were built on this one endpoint.
+
+**Fix:** Rather than search for whatever replacement TfL now recommends, both features were rebuilt to not depend on TfL having a dedicated nearby search at all. The full list of stations and, separately, bus stops is fetched once from a different endpoint already used elsewhere in this app, cached for a day at a time since these locations essentially never change, and distance to each one is calculated directly rather than asked of TfL. This also turned out to have its own response shape surprise, the same endpoint returns a plain list for some requests and something else for others, caught and corrected the same way as similar issues elsewhere in this file, by logging the real response rather than assuming its shape.
+
+The broader lesson here is less about this specific endpoint and more about a pattern worth remembering, a feature this app does not directly control can be taken away by the provider with no warning, and depending on already proven, general purpose data over a narrow, purpose built endpoint is more resilient to that.
+
+### 35. A deleted file caused every deployment to silently fail without anyone noticing for a while
+
+**Where:** `frontend/components/HeaderNav.tsx`
+
+**What happened:** This file was accidentally removed from the project at some point while working on something else. Every push after that kept triggering the automatic deployment exactly as expected, but the actual build step inside it was failing every single time, since the app still tried to import a file that no longer existed. Because the deployment failure happened partway through, the server simply kept running whatever version it already had, with no visible sign to anyone that newer pushes were not actually taking effect. Several genuine fixes were pushed and appeared to have no effect at all, which looked exactly like those fixes being wrong, when the real problem was that none of them had ever actually gone live.
+
+**Fix:** Found by reading the actual deployment log rather than only the live site's behaviour, which showed the real build error naming the missing file directly. The missing file was restored and pushed again, at which point every fix that had seemed ineffective started working immediately, because they had been correct all along. Worth remembering as a general lesson, if a fix that should obviously work appears to do nothing at all, checking whether the deployment itself actually succeeded is worth doing before assuming the fix was wrong.
+
 ## Summary
 
-Thirty three items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Twenty three were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
+Thirty five items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Twenty five were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
 
-Several of these, in particular bug 1, bug 12, bug 18, bug 26, bug 31, and bug 32, are the kind of issue that would be easy to miss without deliberately testing the real behaviour of the system rather than assuming it works because the code looks correct. Bug 32 in particular took the longest of anything in this project to actually resolve, and the lesson from it was less about any single fix and more about when to stop trusting documentation and start trusting a real response instead.
+Several of these, in particular bug 1, bug 12, bug 18, bug 26, bug 31, bug 32, and bug 35, are the kind of issue that would be easy to miss without deliberately testing the real behaviour of the system rather than assuming it works because the code looks correct. Bug 32 took the longest of anything in this project to resolve on its first pass, and bug 34 is a reminder that resolving something once is not the same as it staying resolved forever, when the underlying issue is a decision made by someone else entirely. Bug 35 is a different kind of lesson again, that a fix can be completely correct and still appear broken, if the thing verifying it never actually ran.

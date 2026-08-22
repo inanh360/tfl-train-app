@@ -227,8 +227,9 @@ let busStopCache: { data: TflNearbyStopPoint[]; fetchedAt: number } | null = nul
 
 const STATION_STOP_TYPES = new Set(["NaptanMetroStation", "NaptanRailStation", "NaptanDlrStation"]);
 
-async function fetchAllStopsForModes(modes: string): Promise<TflNearbyStopPoint[]> {
+async function fetchAllStopsForModes(modes: string, page?: number): Promise<TflNearbyStopPoint[]> {
   const url = new URL(`${TFL_BASE_URL}/StopPoint/Mode/${modes}`);
+  if (page != null) url.searchParams.set("page", String(page));
   appendAppKey(url);
 
   // This is a genuinely large payload (thousands of bus stops
@@ -285,10 +286,29 @@ async function getAllTrainStops(): Promise<TflNearbyStopPoint[]> {
 async function getAllBusStops(): Promise<TflNearbyStopPoint[]> {
   if (busStopCache && Date.now() - busStopCache.fetchedAt < STOP_CACHE_MS) return busStopCache.data;
 
-  const raw = await fetchAllStopsForModes("bus");
-  busStopCache = { data: raw, fetchedAt: Date.now() };
-  console.log(`[nearby-bus] cached ${raw.length} bus stops`);
-  return raw;
+  // Confirmed via a live 400 response ("Bus mode must be paginated as
+  // data set is too large") and TfL's own generated API client docs:
+  // page 1 is stops 1-1000, page 2 is 1001-2000, and so on. There's no
+  // documented way to know the total page count up front, so this keeps
+  // requesting pages until one comes back with fewer than 1000 stops,
+  // which signals the last page. Capped at 30 pages (30,000 stops) as a
+  // sanity limit — London has roughly 19,000 bus stops, so this leaves
+  // real headroom without risking an infinite loop if TfL's pagination
+  // ever behaves unexpectedly.
+  const PAGE_SIZE = 1000;
+  const MAX_PAGES = 30;
+  const all: TflNearbyStopPoint[] = [];
+
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const batch = await fetchAllStopsForModes("bus", page);
+    all.push(...batch);
+    console.log(`[nearby-bus] page ${page} returned ${batch.length} stops (running total ${all.length})`);
+    if (batch.length < PAGE_SIZE) break;
+  }
+
+  busStopCache = { data: all, fetchedAt: Date.now() };
+  console.log(`[nearby-bus] cached ${all.length} bus stops`);
+  return all;
 }
 
 export async function findNearbyStations(lat: number, lon: number, radiusMetres = 1000): Promise<TflNearbyStopPoint[]> {
