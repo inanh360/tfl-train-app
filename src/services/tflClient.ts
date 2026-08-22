@@ -246,7 +246,19 @@ async function fetchAllStopsForModes(modes: string): Promise<TflNearbyStopPoint[
       const body = await res.text().catch(() => "");
       throw new Error(`TfL stop list request failed for mode(s) ${modes}: ${res.status} ${res.statusText} — ${body}`);
     }
-    return (await res.json()) as TflNearbyStopPoint[];
+    const parsed = await res.json();
+    if (Array.isArray(parsed)) return parsed as TflNearbyStopPoint[];
+
+    // Not a bare array as assumed — try the common wrapper shapes seen
+    // elsewhere in this codebase before giving up and logging the real
+    // shape so this can be fixed against actual evidence rather than
+    // another guess.
+    const wrapped = (parsed as { stopPoints?: TflNearbyStopPoint[]; places?: TflNearbyStopPoint[] })?.stopPoints
+      ?? (parsed as { stopPoints?: TflNearbyStopPoint[]; places?: TflNearbyStopPoint[] })?.places;
+    if (Array.isArray(wrapped)) return wrapped;
+
+    console.log(`[nearby] unexpected /StopPoint/Mode response shape for ${modes}:`, JSON.stringify(parsed).slice(0, 500));
+    return [];
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       throw new Error(`TfL stop list request for mode(s) ${modes} timed out after 20s`);
