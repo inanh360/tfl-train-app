@@ -289,26 +289,57 @@ async function getAllBusStops(): Promise<TflNearbyStopPoint[]> {
   // Confirmed via a live 400 response ("Bus mode must be paginated as
   // data set is too large") and TfL's own generated API client docs:
   // page 1 is stops 1-1000, page 2 is 1001-2000, and so on. There's no
-  // documented way to know the total page count up front, so this keeps
-  // requesting pages until one comes back with fewer than 1000 stops,
-  // which signals the last page. Capped at 30 pages (30,000 stops) as a
-  // sanity limit — London has roughly 19,000 bus stops, so this leaves
-  // real headroom without risking an infinite loop if TfL's pagination
-  // ever behaves unexpectedly.
+  // documented way to know the total page count up front. Fetching one
+  // page at a time sequentially took long enough on a live request that
+  // Cloudflare's own proxy timed out waiting for a response (a 524),
+  // even though the server was still working — so this fetches several
+  // pages in parallel per round instead, only stopping once a round
+  // contains a short page (the real signal that pagination has ended).
+  // Capped at 30 pages (30,000 stops) as a sanity limit — London has
+  // roughly 19,000 bus stops, so this leaves real headroom.
   const PAGE_SIZE = 1000;
   const MAX_PAGES = 30;
+  const BATCH_SIZE = 6;
   const all: TflNearbyStopPoint[] = [];
+  let page = 1;
 
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const batch = await fetchAllStopsForModes("bus", page);
-    all.push(...batch);
-    console.log(`[nearby-bus] page ${page} returned ${batch.length} stops (running total ${all.length})`);
-    if (batch.length < PAGE_SIZE) break;
+  while (page <= MAX_PAGES) {
+    const batchPages = Array.from({ length: Math.min(BATCH_SIZE, MAX_PAGES - page + 1) }, (_, i) => page + i);
+    const results = await Promise.all(batchPages.map((p) => fetchAllStopsForModes("bus", p)));
+
+    let hitShortPage = false;
+    for (let i = 0; i < results.length; i++) {
+      const batch = results[i];
+      all.push(...batch);
+      console.log(`[nearby-bus] page ${batchPages[i]} returned ${batch.length} stops (running total ${all.length})`);
+      if (batch.length < PAGE_SIZE) {
+        hitShortPage = true;
+        break; // any pages after a short one don't need fetching — that was the last page of real data
+      }
+    }
+
+    if (hitShortPage) break;
+    page += BATCH_SIZE;
   }
 
   busStopCache = { data: all, fetchedAt: Date.now() };
   console.log(`[nearby-bus] cached ${all.length} bus stops`);
   return all;
+}
+
+// Called once when the server starts, so the (slow, multi-request) first
+// fetch of each stop list happens in the background well before any real
+// visitor's request depends on it, rather than a live page load risking
+// a proxy-level timeout while it happens synchronously.
+export async function warmNearbyStopCaches(): Promise<void> {
+  try {
+    await Promise.all([getAllTrainStops(), getAllBusStops()]);
+    console.log("[nearby] stop caches warmed on startup");
+  } catch (err) {
+    // Not fatal — the caches will just populate lazily on first real
+    // request instead, same as before this existed.
+    console.error("[nearby] failed to warm stop caches on startup", err);
+  }
 }
 
 export async function findNearbyStations(lat: number, lon: number, radiusMetres = 1000): Promise<TflNearbyStopPoint[]> {

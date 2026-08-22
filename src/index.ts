@@ -10,6 +10,7 @@ import { accountRouter } from "./routes/account";
 import { nearbyRouter } from "./routes/nearby";
 import { busRouter } from "./routes/bus";
 import { pushRouter } from "./routes/push";
+import { warmNearbyStopCaches } from "./services/tflClient";
 import { generalLimiter, tflProxyLimiter } from "./middleware/rateLimiters";
 
 const app = express();
@@ -45,4 +46,8 @@ app.use("/account", accountRouter);
 app.listen(PORT, () => {
   console.log(`API listening on http://localhost:${PORT}`);
   console.log(`Run "npm run poll" in a separate process to start the TfL status poller.`);
+  // Deliberately not awaited — the server should start accepting requests
+  // immediately, with the stop caches populating in the background rather
+  // than the whole process waiting on a series of TfL requests first.
+  warmNearbyStopCaches();
 });
