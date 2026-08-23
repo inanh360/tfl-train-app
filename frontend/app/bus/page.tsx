@@ -15,6 +15,7 @@ function BusTile({ href, title, description }: { href: string; title: string; de
         borderRadius: "var(--radius)",
         textDecoration: "none",
         color: "var(--text)",
+        transition: "border-color 120ms ease",
       }}
     >
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, color: "var(--primary)" }}>{title}</div>
@@ -35,7 +36,13 @@ export default function BusPage() {
         A separate section for live London bus times, kept apart from the train pages.
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 10,
+        }}
+      >
         <BusTile href="/bus/times" title="Live bus times" description="Search a stop, see the next buses" />
         <BusTile href="/bus/nearby" title="Near me" description="Find the best nearby bus stop right now" />
         {session && (
