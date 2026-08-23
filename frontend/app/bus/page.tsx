@@ -29,12 +29,6 @@ export default function BusPage() {
 
   return (
     <div>
-      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 13, color: "var(--text-dim)", fontWeight: 500, marginBottom: 16 }}>
-        BUSES
-      </h1>
-      <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 20 }}>
-        A separate section for live London bus times, kept apart from the train pages.
-      </p>
 
       <div
         style={{
