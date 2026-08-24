@@ -326,8 +326,24 @@ The broader lesson here is less about this specific endpoint and more about a pa
 
 **Fix:** Found by reading the actual deployment log rather than only the live site's behaviour, which showed the real build error naming the missing file directly. The missing file was restored and pushed again, at which point every fix that had seemed ineffective started working immediately, because they had been correct all along. Worth remembering as a general lesson, if a fix that should obviously work appears to do nothing at all, checking whether the deployment itself actually succeeded is worth doing before assuming the fix was wrong.
 
+### 36. The full bus stop list was too large for TfL to return in one request
+
+**Where:** `src/services/tflClient.ts`
+
+**What happened:** The replacement for the retired endpoint in item 34 worked immediately for train stations, a few hundred of them, but failed outright for bus stops with a direct error from TfL stating that bus mode must be paginated because the data set is too large. London has roughly nineteen thousand bus stops, far more than trains, and TfL enforces a hard limit on how many can come back in a single request.
+
+**Fix:** TfL's own documentation for this endpoint states each page holds one thousand stops, with no way to know the total number of pages ahead of time. The fix requests page after page and stops once a page comes back with fewer than one thousand results, which is the real signal that the last page has been reached.
+
+### 37. Fetching all those pages one at a time was slow enough to time out on a live request
+
+**Where:** `src/services/tflClient.ts`, `src/index.ts`
+
+**What happened:** The fix in item 36 worked, but requesting roughly twenty pages one after another, each a separate round trip to TfL, took long enough that Cloudflare's own proxy gave up waiting for a response and returned its own timeout error before the server had finished. The server was still working correctly the whole time, it simply was not fast enough for a real visitor to wait on inside a single page load.
+
+**Fix:** Two changes together. Pages are now requested several at a time instead of one at a time, cutting the total wait roughly in proportion to how many are requested together. More importantly, the server now fetches and caches the full station and bus stop lists once in the background the moment it starts up, rather than waiting for the first real visitor to trigger that work. In practice this means a real person almost never experiences the slow path at all, since by the time anyone visits, the data has usually already been fetched.
+
 ## Summary
 
-Thirty five items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Twenty five were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
+Thirty seven items are recorded here across backend logic, frontend display, Docker builds, third party API integration, security, one deployment sync issue, and production configuration. Twenty seven were genuine bugs in the running code. Seven were hardening steps, six taken during a deliberate security review and one more found while setting up the production server itself. Two were configuration values that would have caused a real failure once deployed, caught and corrected before that happened. One was a mismatch between an intended change and what actually ended up on disk.
 
-Several of these, in particular bug 1, bug 12, bug 18, bug 26, bug 31, bug 32, and bug 35, are the kind of issue that would be easy to miss without deliberately testing the real behaviour of the system rather than assuming it works because the code looks correct. Bug 32 took the longest of anything in this project to resolve on its first pass, and bug 34 is a reminder that resolving something once is not the same as it staying resolved forever, when the underlying issue is a decision made by someone else entirely. Bug 35 is a different kind of lesson again, that a fix can be completely correct and still appear broken, if the thing verifying it never actually ran.
+Several of these, in particular bug 1, bug 12, bug 18, bug 26, bug 31, bug 32, and bug 35, are the kind of issue that would be easy to miss without deliberately testing the real behaviour of the system rather than assuming it works because the code looks correct. Bug 32 took the longest of anything in this project to resolve on its first pass, and bug 34 is a reminder that resolving something once is not the same as it staying resolved forever, when the underlying issue is a decision made by someone else entirely. Bug 35 is a different kind of lesson again, that a fix can be completely correct and still appear broken, if the thing verifying it never actually ran. Bugs 36 and 37 are a reminder that a correct fix and a fast enough fix are not always the same thing, and that fixing the immediate error is sometimes only half the actual problem.
