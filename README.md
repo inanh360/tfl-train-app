@@ -63,3 +63,7 @@ docker compose up --build
 ```
 
 Copy `.env.example` to `.env` and fill in real values first. This starts the API, the background poller, and the frontend together in local mode. Production only pieces are kept in a separate file and never run locally.
+
+## License
+
+MIT, see [LICENSE](./LICENSE).
