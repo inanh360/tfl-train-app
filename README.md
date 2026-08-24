@@ -4,19 +4,11 @@ A live status board, journey planner, and disruption alert app for London transp
 
 Live at [linestatus.co.uk](https://linestatus.co.uk)
 
-<!--
-  Add real screenshots here once you have them. Save each image into
-  docs/screenshots/ in this repo, then reference it like the examples
-  below (relative paths work automatically on GitHub, no external
-  hosting needed).
-
-  ![Status board with a live disruption](docs/screenshots/status-board.png)
-  ![A dedicated line page](docs/screenshots/line-page.png)
-  ![Live departures board](docs/screenshots/departures.png)
-  ![Mobile view](docs/screenshots/mobile.png)
-  ![GitHub Actions deploy pipeline](docs/screenshots/deploy-pipeline.png)
--->
-
+![Status board with a live disruption](docs/screenshots/status-board.png)
+![A dedicated line page](docs/screenshots/line-page.png)
+![Live departures board](docs/screenshots/departures.png)
+![Mobile view](docs/screenshots/mobile.png)
+![GitHub Actions deploy pipeline](docs/screenshots/deploy-pipeline.png)
 ## What it does
 
 - **Live line status.** Every train line in London, tube, DLR, Overground, and the Elizabeth line, shown with its current status. Delays and disruptions show the actual affected branch and TfL's own reason text, not just a generic warning.
