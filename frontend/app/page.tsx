@@ -40,6 +40,20 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [load]);
 
+  // Lets someone glance at an open tab and see there's a problem without
+  // switching to it. Counts lines actually disrupted, not raw event rows,
+  // since one line can carry several simultaneous events for different
+  // branches — that would inflate the number in a way that doesn't match
+  // what a person actually cares about ("how many lines are affected").
+  useEffect(() => {
+    if (!lines) return;
+    const disruptedCount = lines.filter((line) => severityRank(line) < 10).length;
+    document.title = disruptedCount > 0 ? `${disruptedCount} disruption${disruptedCount === 1 ? "" : "s"} - Line Status` : "Line Status";
+    return () => {
+      document.title = "Line Status";
+    };
+  }, [lines]);
+
   const favouriteLineIds = new Set(favourites.filter((f) => f.favouriteType === "LINE").map((f) => f.refId));
 
   async function toggleFavourite(line: Line) {
