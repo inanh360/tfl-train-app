@@ -6,6 +6,15 @@ import { StatusDot } from "@/components/StatusDot";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 
+// Confirmed against current sources as of 2026: these run through the
+// night on Friday and Saturday as part of the Night Tube (five
+// Underground lines, plus the Overground's Windrush line). This is
+// general, static reference info rather than live data on purpose — TfL's
+// dedicated timetable endpoint for exact per-station times has real,
+// long-standing reliability problems reported on their own forum, not
+// worth depending on for something this simple.
+const NIGHT_TUBE_LINE_IDS = new Set(["central", "jubilee", "northern", "piccadilly", "victoria", "windrush"]);
+
 export default function LinePage({ params }: { params: Promise<{ lineId: string }> }) {
   const { lineId } = use(params);
   const { session } = useAuth();
@@ -105,6 +114,28 @@ export default function LinePage({ params }: { params: Promise<{ lineId: string 
         >
           ★
         </button>
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 12, color: "var(--text-dim)", fontWeight: 500, marginBottom: 8 }}>
+          USUAL OPERATING HOURS
+        </h2>
+        <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 12, background: "var(--bg-raised)" }}>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--text-dim)" }}>
+            Trains usually run from around 5am to midnight, Monday to Saturday. On Sundays, services usually start
+            later, around 7am, and finish earlier, around 11pm.
+          </p>
+          {NIGHT_TUBE_LINE_IDS.has(line.id) && (
+            <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--text-dim)" }}>
+              This line also runs through the night on Friday and Saturday as part of the Night Tube, though not
+              every branch is served overnight.
+            </p>
+          )}
+          <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--text-dim)" }}>
+            General guide only, exact times vary by station and branch. Check live departures for the actual next
+            train.
+          </p>
+        </div>
       </div>
 
       {activeEvents.length > 0 && (
