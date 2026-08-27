@@ -63,6 +63,11 @@ export interface LineStation {
   lon?: number;
 }
 
+export interface LineBranch {
+  name: string;
+  stations: { id: string; name: string }[];
+}
+
 export interface Favourite {
   id: string;
   favouriteType: "LINE" | "STATION" | "BUS_STOP";
@@ -170,6 +175,7 @@ export const api = {
   getLines: () => request<Line[]>("/lines"),
   getLine: (id: string) => request<Line>(`/lines/${encodeURIComponent(id)}`),
   getLineStations: (id: string) => request<LineStation[]>(`/lines/${encodeURIComponent(id)}/stations`),
+  getLineBranches: (id: string) => request<LineBranch[]>(`/lines/${encodeURIComponent(id)}/branches`),
 
   getFavourites: () => request<Favourite[]>("/favourites"),
   addFavourite: (body: { favouriteType: "LINE" | "STATION" | "BUS_STOP"; refId: string; refLabel: string }) =>

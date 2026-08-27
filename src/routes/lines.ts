@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
-import { getLineStopPoints } from "../services/tflClient";
+import { getLineStopPoints, getLineBranches } from "../services/tflClient";
 
 export const linesRouter = Router();
 
@@ -48,5 +48,19 @@ linesRouter.get("/:id/stations", async (req, res) => {
   } catch (err) {
     console.error("[lines/:id/stations] failed", err);
     res.status(502).json({ error: "Failed to load stations for this line" });
+  }
+});
+
+// GET /lines/:id/branches — each named branch on this line (e.g. "Ealing
+// Broadway <-> Epping"), with its stations start to finish, used by the
+// per-line page to show a proper branch breakdown rather than one flat
+// alphabetical-ish list.
+linesRouter.get("/:id/branches", async (req, res) => {
+  try {
+    const branches = await getLineBranches(req.params.id);
+    res.json(branches);
+  } catch (err) {
+    console.error("[lines/:id/branches] failed", err);
+    res.status(502).json({ error: "Failed to load branches for this line" });
   }
 });

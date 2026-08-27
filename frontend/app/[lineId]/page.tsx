@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { api, type Line, type LineStation, type Favourite } from "@/lib/api";
+import { api, type Line, type LineStation, type LineBranch, type Favourite } from "@/lib/api";
 import { StatusDot } from "@/components/StatusDot";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
@@ -22,6 +22,7 @@ export default function LinePage({ params }: { params: Promise<{ lineId: string 
 
   const [line, setLine] = useState<Line | null>(null);
   const [stations, setStations] = useState<LineStation[] | null>(null);
+  const [branches, setBranches] = useState<LineBranch[] | null>(null);
   const [favourites, setFavourites] = useState<Favourite[]>([]);
   const [notFound, setNotFound] = useState(false);
 
@@ -32,6 +33,11 @@ export default function LinePage({ params }: { params: Promise<{ lineId: string 
       .catch(() => setNotFound(true));
 
     api.getLineStations(lineId).then(setStations).catch(() => setStations([]));
+    // Kept separate from the flat station fetch above rather than
+    // replacing it — if the branch breakdown fails or comes back empty
+    // for any reason, the page still has the flat list to fall back to
+    // rather than showing nothing.
+    api.getLineBranches(lineId).then(setBranches).catch(() => setBranches([]));
 
     if (session) {
       api
@@ -159,28 +165,61 @@ export default function LinePage({ params }: { params: Promise<{ lineId: string 
 
       <div>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: 12, color: "var(--text-dim)", fontWeight: 500, marginBottom: 8 }}>
-          STATIONS {stations && `(${stations.length})`}
+          STATIONS
         </h2>
-        {!stations && <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Loading stations…</p>}
-        {stations && stations.length === 0 && (
-          <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Couldn&apos;t load stations for this line.</p>
-        )}
-        {stations && stations.length > 0 && (
-          <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-            {stations.map((station, i) => (
-              <div
-                key={station.id}
-                style={{
-                  padding: "10px 14px",
-                  borderBottom: i < stations.length - 1 ? "1px solid var(--border)" : "none",
-                  background: "var(--bg-raised)",
-                  fontSize: 13,
-                }}
-              >
-                {station.commonName}
+
+        {(!stations || !branches) && <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Loading stations…</p>}
+
+        {stations && branches && branches.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {branches.map((branch) => (
+              <div key={branch.name}>
+                <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: line.colourHex }}>{branch.name}</h3>
+                <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+                  {branch.stations.map((station, i) => (
+                    <div
+                      key={station.id}
+                      style={{
+                        padding: "10px 14px",
+                        borderBottom: i < branch.stations.length - 1 ? "1px solid var(--border)" : "none",
+                        background: "var(--bg-raised)",
+                        fontSize: 13,
+                      }}
+                    >
+                      {station.name}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
+        )}
+
+        {/* Falls back to a flat, unbranched list if the branch breakdown
+            didn't come back with anything — still shows every station on
+            the line, just without the start-to-finish grouping. */}
+        {stations && branches && branches.length === 0 && (
+          <>
+            {stations.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Couldn&apos;t load stations for this line.</p>
+            ) : (
+              <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+                {stations.map((station, i) => (
+                  <div
+                    key={station.id}
+                    style={{
+                      padding: "10px 14px",
+                      borderBottom: i < stations.length - 1 ? "1px solid var(--border)" : "none",
+                      background: "var(--bg-raised)",
+                      fontSize: 13,
+                    }}
+                  >
+                    {station.commonName}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -458,6 +458,44 @@ export async function getLineStopPoints(lineId: string): Promise<TflLineStopPoin
   return stopPoints.map((s) => ({ id: s.id, commonName: s.commonName, lat: s.lat, lon: s.lon }));
 }
 
+export interface LineBranch {
+  name: string;
+  stations: { id: string; name: string }[];
+}
+
+// Full branch structure for a line, e.g. Central line's "Ealing Broadway
+// <-> Epping" and "West Ruislip <-> Hainault" branches, each with its
+// stations in real physical order start to finish. Confirmed against
+// several independent real examples: the endpoint is
+// /Line/{id}/Route/Sequence/{direction}, and the reliable part of its
+// response is orderedLineRoutes (a name plus an ordered list of station
+// ids per branch). A different part of the same response,
+// stopPointSequences, has been reported on TfL's own forum as not
+// reliably lining up by index with orderedLineRoutes — so rather than
+// trust that part for station names, this looks names up from
+// getLineStopPoints above instead, which is already proven reliable
+// elsewhere in this app.
+export async function getLineBranches(lineId: string): Promise<LineBranch[]> {
+  const url = new URL(`${TFL_BASE_URL}/Line/${encodeURIComponent(lineId)}/Route/Sequence/outbound`);
+  appendAppKey(url);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`TfL line route sequence request failed: ${res.status} ${res.statusText}`);
+  }
+
+  const data = (await res.json()) as { orderedLineRoutes?: { name: string; naptanIds: string[] }[] };
+  const routes = data.orderedLineRoutes ?? [];
+
+  const allStops = await getLineStopPoints(lineId);
+  const nameById = new Map(allStops.map((s) => [s.id, s.commonName]));
+
+  return routes.map((route) => ({
+    name: route.name,
+    stations: route.naptanIds.map((id) => ({ id, name: nameById.get(id) ?? id })),
+  }));
+}
+
 // Searches for bus stops by name, kept entirely separate from
 // searchStations (train modes) since the two are deliberately different
 // sections of the app. Arrivals themselves reuse the existing
