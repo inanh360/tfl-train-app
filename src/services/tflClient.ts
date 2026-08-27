@@ -491,7 +491,11 @@ export async function getLineBranches(lineId: string): Promise<LineBranch[]> {
   const nameById = new Map(allStops.map((s) => [s.id, s.commonName]));
 
   return routes.map((route) => ({
-    name: route.name,
+    // Confirmed live: TfL's branch names literally contain the raw HTML
+    // entity "&harr;" (a left-right arrow) rather than the actual
+    // character, e.g. "Ealing Broadway &harr; Epping" — decoded here
+    // rather than displayed as-is.
+    name: route.name.replace(/&harr;/g, "↔").replace(/&amp;/g, "&"),
     stations: route.naptanIds.map((id) => ({ id, name: nameById.get(id) ?? id })),
   }));
 }

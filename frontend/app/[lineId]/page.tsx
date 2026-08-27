@@ -174,7 +174,7 @@ export default function LinePage({ params }: { params: Promise<{ lineId: string 
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {branches.map((branch) => (
               <div key={branch.name}>
-                <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: line.colourHex }}>{branch.name}</h3>
+                <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>{branch.name}</h3>
                 <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
                   {branch.stations.map((station, i) => (
                     <div
