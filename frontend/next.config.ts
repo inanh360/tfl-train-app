@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Produces a self-contained .next/standalone folder with only the files
-  // needed to run — keeps the Docker image small and avoids shipping the
+  // needed to run, keeps the Docker image small and avoids shipping the
   // full node_modules tree into the runtime stage.
   output: "standalone",
 
@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              // 'unsafe-inline' here is a known, deliberate relaxation —
+              // 'unsafe-inline' here is a known, deliberate relaxation,
               // Next.js embeds a small inline script for page hydration
               // data. A stricter nonce-based CSP is possible but needs
               // per-request middleware, which is a bigger change than

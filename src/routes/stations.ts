@@ -3,7 +3,7 @@ import { searchStations, getArrivals } from "../services/tflClient";
 
 export const stationsRouter = Router();
 
-// GET /stations/search?q=farring — used by the journey planner's
+// GET /stations/search?q=farring, used by the journey planner's
 // from/to autocomplete fields.
 stationsRouter.get("/search", async (req, res) => {
   const query = req.query.q;
@@ -28,7 +28,7 @@ stationsRouter.get("/search", async (req, res) => {
   }
 });
 
-// GET /stations/:id/arrivals — live "next train" predictions for a
+// GET /stations/:id/arrivals, live "next train" predictions for a
 // specific station, used by the departures board page.
 stationsRouter.get("/:id/arrivals", async (req, res) => {
   try {

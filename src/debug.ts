@@ -1,4 +1,4 @@
-// One-off diagnostic script — not part of the app, just for debugging the
+// One-off diagnostic script, not part of the app, just for debugging the
 // favourites/notification test. Run with: npx tsx src/debug.ts
 import { prisma } from "./lib/prisma";
 

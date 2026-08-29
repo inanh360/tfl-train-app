@@ -7,7 +7,7 @@ export const accountRouter = Router();
 
 accountRouter.use(requireAuth);
 
-// DELETE /account — removes the signed-in user's favourites and
+// DELETE /account, removes the signed-in user's favourites and
 // notifications, then deletes their actual Supabase Auth account. This is
 // the GDPR "right to erasure" mechanism: once this completes, nothing
 // identifying this person remains in either database.
@@ -15,7 +15,7 @@ accountRouter.delete("/", async (req, res) => {
   const userId = req.userId as string;
 
   try {
-    // Delete app data first — if this fails partway, the auth account
+    // Delete app data first, if this fails partway, the auth account
     // stays intact rather than being deleted while orphaned data remains.
     await prisma.notification.deleteMany({ where: { userId } });
     await prisma.favourite.deleteMany({ where: { userId } });

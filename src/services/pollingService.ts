@@ -42,7 +42,7 @@ export async function pollOnce(): Promise<void> {
   );
   const currentByKey = new Map(current.map((s) => [statusKey(s), s]));
 
-  // Close out any active DB row whose status is no longer being reported —
+  // Close out any active DB row whose status is no longer being reported,
   // the line has moved on to a different status (or back to Good Service).
   const toClose = activeEvents.filter((e) => !currentByKey.has(statusKey(e)));
   if (toClose.length > 0) {
@@ -53,7 +53,7 @@ export async function pollOnce(): Promise<void> {
   }
 
   // Anything in the current TfL response that we don't already have an
-  // active row for is a genuinely new status — insert it and fire a
+  // active row for is a genuinely new status, insert it and fire a
   // notification.
   const toCreate = current.filter((s) => !activeByKey.has(statusKey(s)));
 
@@ -76,7 +76,7 @@ export async function pollOnce(): Promise<void> {
       include: { affectedStations: true, line: true },
     });
 
-    // Good Service (severity 10) isn't worth alerting on — only notify on
+    // Good Service (severity 10) isn't worth alerting on, only notify on
     // genuine degradation.
     if (status.statusSeverity < 10) {
       await notifyStatusChange(event);
@@ -84,7 +84,7 @@ export async function pollOnce(): Promise<void> {
   }
 
   console.log(
-    `[poll] ${new Date().toISOString()} — closed ${toClose.length}, created ${toCreate.length}, unchanged ${current.length - toCreate.length}`
+    `[poll] ${new Date().toISOString()}, closed ${toClose.length}, created ${toCreate.length}, unchanged ${current.length - toCreate.length}`
   );
 }
 
@@ -139,7 +139,7 @@ if (require.main === module) {
   // Guards against overlapping runs: if a poll is still writing to the DB
   // when the next tick fires (e.g. a slow network response, or a bad
   // interval value), we skip that tick rather than starting a second
-  // pollOnce() concurrently — running two at once was exactly what caused
+  // pollOnce() concurrently, running two at once was exactly what caused
   // duplicate notifications earlier.
   let isPolling = false;
 

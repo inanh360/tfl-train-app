@@ -53,7 +53,7 @@ export default function FavouritesPage() {
     .sort((a, b) => severityRank(a) - severityRank(b));
   const favouriteStations = favourites.filter((f) => f.favouriteType === "STATION");
   // Matched by display name, since that's the field arrivals data actually
-  // gives us — both ultimately come from the same TfL line name field, so
+  // gives us, both ultimately come from the same TfL line name field, so
   // this stays consistent.
   const favouriteLineNames = new Set(favouriteLines.map((l) => l.name));
 
@@ -118,7 +118,7 @@ function StationFavouriteRow({
         const sorted = data.sort((a, b) => a.secondsAway - b.secondsAway);
         setHadAnyArrivals(sorted.length > 0);
         // Only filter down to favourited lines if the person has actually
-        // favourited any — otherwise there's nothing to filter by, and
+        // favourited any, otherwise there's nothing to filter by, and
         // showing nothing would be worse than showing the true soonest
         // trains regardless of line.
         const relevant = favouriteLineNames.size > 0 ? sorted.filter((t) => favouriteLineNames.has(t.line)) : sorted;

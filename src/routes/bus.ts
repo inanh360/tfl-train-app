@@ -4,17 +4,17 @@ import { searchBusStops, getArrivals, resolveBusStopDetails, findNearbyBusStops 
 export const busRouter = Router();
 
 // Bounds how many raw matches get resolved into real stops, since that's
-// one additional TfL call per match — fine for a short dropdown list, not
+// one additional TfL call per match, fine for a short dropdown list, not
 // something to do for an unbounded number of matches. Each match can
 // expand into more than one result if it turns out to be a grouped parent
 // stop, so the final count can exceed this.
 const MAX_RESOLVED_MATCHES = 8;
 
-// Same reasoning as the train nearby-stations feature — see routes/nearby.ts.
+// Same reasoning as the train nearby-stations feature, see routes/nearby.ts.
 const WALK_SPEED_METRES_PER_SECOND = 1.3;
 const MAX_STOPS_TO_CHECK = 10;
 
-// GET /bus/search?q=oxford — bus stop search, kept entirely separate from
+// GET /bus/search?q=oxford, bus stop search, kept entirely separate from
 // /stations/search (train modes only), since this app deliberately treats
 // buses as their own distinct section rather than mixing modes.
 busRouter.get("/search", async (req, res) => {
@@ -35,7 +35,7 @@ busRouter.get("/search", async (req, res) => {
   }
 });
 
-// GET /bus/:id/times — live "next bus" predictions for a specific stop.
+// GET /bus/:id/times, live "next bus" predictions for a specific stop.
 // Reuses the same getArrivals function as the train departures board,
 // since TfL's arrivals endpoint isn't mode specific, it just returns
 // whatever's predicted for the given stop id.
@@ -56,7 +56,7 @@ busRouter.get("/:id/times", async (req, res) => {
   }
 });
 
-// GET /bus/nearby?lat=&lon=&radius= — nearby bus stops and the soonest
+// GET /bus/nearby?lat=&lon=&radius=, nearby bus stops and the soonest
 // bus you could actually catch at each, accounting for walking time.
 // Bus stops sit much closer together than train stations, so this
 // defaults to a smaller radius than the train version.
@@ -105,7 +105,7 @@ busRouter.get("/nearby", async (req, res) => {
       })
     );
 
-    // Stops with no live predictions at all aren't useful to show —
+    // Stops with no live predictions at all aren't useful to show,
     // filtered out here rather than on the frontend, so the "best"
     // calculation below and the payload itself both only ever consider
     // stops that actually have something to offer.

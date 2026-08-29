@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabaseClient";
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
 // Push subscriptions need the VAPID public key as raw bytes, not the
-// base64url string it's normally shared as — this is the standard
+// base64url string it's normally shared as, this is the standard
 // conversion for that, not anything TfL or app specific.
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);

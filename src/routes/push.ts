@@ -6,7 +6,7 @@ export const pushRouter = Router();
 
 pushRouter.use(requireAuth);
 
-// POST /push/subscribe — called after the browser grants notification
+// POST /push/subscribe, called after the browser grants notification
 // permission and creates a push subscription. Stores just enough to send
 // a push later: the endpoint (effectively "where to deliver it") and the
 // two keys the browser generated for encrypting the payload.
@@ -28,7 +28,7 @@ pushRouter.post("/subscribe", async (req, res) => {
   res.status(201).json({ ok: true });
 });
 
-// DELETE /push/subscribe — called when the user turns notifications off,
+// DELETE /push/subscribe, called when the user turns notifications off,
 // or the browser reports the subscription is no longer valid.
 pushRouter.delete("/subscribe", async (req, res) => {
   const { endpoint } = req.body as { endpoint?: string };

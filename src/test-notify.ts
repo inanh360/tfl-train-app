@@ -1,4 +1,4 @@
-// One-off test script — manually creates a fake "Minor Delays" event on the
+// One-off test script, manually creates a fake "Minor Delays" event on the
 // Circle line and runs it through notifyStatusChange, so we can verify the
 // favourites -> notification path works without depending on a real,
 // currently-active TfL disruption. Run with: npx tsx src/test-notify.ts

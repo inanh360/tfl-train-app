@@ -12,7 +12,7 @@ export const generalLimiter = rateLimit({
 });
 
 // Stricter limit for routes that proxy out to TfL's API. These are the
-// ones that actually cost something if abused — hammering them burns
+// ones that actually cost something if abused, hammering them burns
 // through our TfL app key's own rate limit, which would degrade the app
 // for every user, not just the one sending the requests.
 export const tflProxyLimiter = rateLimit({

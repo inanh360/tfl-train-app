@@ -1,5 +1,5 @@
 // TfL's branch data often reads like "Epping Underground Station - West
-// Ruislip Underground Station" — this strips the repeated station-type
+// Ruislip Underground Station", this strips the repeated station-type
 // suffixes so it displays as "Epping - West Ruislip". Mirrors the same
 // cleanup used in the backend's notification messages, so the wording is
 // consistent between an alert and what's shown on the dashboard.

@@ -23,7 +23,7 @@ export function BusStopAutocomplete({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keeps the visible text in sync when the selected stop changes from
-  // outside this component — e.g. clicking a favourited quick-pick button
+  // outside this component, e.g. clicking a favourited quick-pick button
   // on the parent page, which sets a new value without going through this
   // component's own onSelect at all.
   useEffect(() => {

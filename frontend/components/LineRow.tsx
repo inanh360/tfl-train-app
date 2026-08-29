@@ -70,7 +70,7 @@ export function LineRow({
               ))}
             </div>
             {/* Reasons are often identical across branches for the same
-                underlying incident — dedupe so it's not repeated once per
+                underlying incident, dedupe so it's not repeated once per
                 branch. */}
             {[...new Set(active.map((e) => e.reason).filter((r): r is string => Boolean(r)))].map((reason) => (
               <div key={reason} style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>

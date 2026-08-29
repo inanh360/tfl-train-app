@@ -18,7 +18,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [loading, session, isPublicPath, router]);
 
-  // Public pages render immediately regardless of auth-loading state — they
+  // Public pages render immediately regardless of auth-loading state, they
   // don't need to know whether you're signed in to show useful content.
   if (isPublicPath) {
     return <>{children}</>;

@@ -6,7 +6,7 @@ export const notificationsRouter = Router();
 
 notificationsRouter.use(requireAuth);
 
-// GET /notifications — the frontend polls this (React Query refetchInterval)
+// GET /notifications, the frontend polls this (React Query refetchInterval)
 // to show new in-app alerts. Swap for a push subscription later without
 // changing this contract.
 notificationsRouter.get("/", async (req, res) => {
@@ -36,7 +36,7 @@ notificationsRouter.post("/:id/read", async (req, res) => {
   res.status(204).send();
 });
 
-// POST /notifications/read-all — marks every unread notification as read
+// POST /notifications/read-all, marks every unread notification as read
 // for the signed in user. Scoped to req.userId in the query itself, same
 // pattern as the DELETE route below, so there's no way this could ever
 // touch another user's rows.
@@ -45,7 +45,7 @@ notificationsRouter.post("/read-all", async (req, res) => {
   res.status(204).send();
 });
 
-// DELETE /notifications — clears every notification for the signed in
+// DELETE /notifications, clears every notification for the signed in
 // user. Scoped to req.userId in the query itself, not just checked
 // afterward, so there's no way this could ever touch another user's rows.
 notificationsRouter.delete("/", async (req, res) => {

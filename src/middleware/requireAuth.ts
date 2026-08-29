@@ -13,7 +13,7 @@ declare global {
 }
 
 // Verifies the "Authorization: Bearer <token>" header against Supabase
-// Auth. Replaces the earlier x-user-id stand-in — that header let anyone
+// Auth. Replaces the earlier x-user-id stand-in, that header let anyone
 // impersonate any user just by sending a different id, which is fine on
 // localhost but not once this is on a public domain. This middleware
 // actually checks the token was issued by Supabase for a real signed-in
@@ -29,7 +29,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 
   // Express 4 does not automatically catch a rejected promise thrown
-  // inside an async middleware — without this try/catch, a network issue
+  // inside an async middleware, without this try/catch, a network issue
   // or misconfiguration reaching Supabase would kill the connection with
   // no response at all, rather than a proper error the client can handle.
   try {

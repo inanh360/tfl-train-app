@@ -4,7 +4,7 @@ import { getLineStopPoints, getLineBranches } from "../services/tflClient";
 
 export const linesRouter = Router();
 
-// GET /lines — every line with its current status, for the home screen.
+// GET /lines, every line with its current status, for the home screen.
 linesRouter.get("/", async (_req, res) => {
   const lines = await prisma.line.findMany({
     include: {
@@ -18,7 +18,7 @@ linesRouter.get("/", async (_req, res) => {
   res.json(lines);
 });
 
-// GET /lines/:id — single line detail, including recent status history.
+// GET /lines/:id, single line detail, including recent status history.
 linesRouter.get("/:id", async (req, res) => {
   const line = await prisma.line.findUnique({
     where: { id: req.params.id },
@@ -39,7 +39,7 @@ linesRouter.get("/:id", async (req, res) => {
   res.json(line);
 });
 
-// GET /lines/:id/stations — full station list for this line, used by the
+// GET /lines/:id/stations, full station list for this line, used by the
 // dedicated per-line page.
 linesRouter.get("/:id/stations", async (req, res) => {
   try {
@@ -51,7 +51,7 @@ linesRouter.get("/:id/stations", async (req, res) => {
   }
 });
 
-// GET /lines/:id/branches — each named branch on this line (e.g. "Ealing
+// GET /lines/:id/branches, each named branch on this line (e.g. "Ealing
 // Broadway <-> Epping"), with its stations start to finish, used by the
 // per-line page to show a proper branch breakdown rather than one flat
 // alphabetical-ish list.

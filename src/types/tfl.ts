@@ -1,5 +1,5 @@
 // Minimal typing for TfL's /Line/Mode/{modes}/Status response.
-// We only type the fields we actually read — the real payload has more
+// We only type the fields we actually read, the real payload has more
 // ($type, routeSections, serviceTypes, crowding, etc.) that we ignore.
 
 export interface TflAffectedStop {
@@ -9,7 +9,7 @@ export interface TflAffectedStop {
 
 // TfL populates this with branch/route sections for some disruptions (e.g.
 // "Hainault via Newbury Park" on the Central line) but leaves it empty for
-// most — there's no guarantee it's populated, so treat it as a bonus field.
+// most, there's no guarantee it's populated, so treat it as a bonus field.
 export interface TflAffectedRoute {
   name?: string;
   routeCode?: string;
@@ -54,7 +54,7 @@ export interface TflStopPointMatch {
   modes: string[];
   lat?: number;
   lon?: number;
-  // For bus stops specifically — confirmed against a live TfL response,
+  // For bus stops specifically, confirmed against a live TfL response,
   // this is what actually disambiguates multiple stops sharing one
   // station name, e.g. "Angel Or Kings Cross" vs "Blackfriars Or
   // Waterloo" for two different "Farringdon Station" bus stops. An
@@ -104,8 +104,8 @@ export interface TflJourneyResult {
   journeys: TflJourney[];
 }
 
-// TfL returns HTTP 300 (not a real error) when a location — often a hub id
-// like Bank/Monument's "HUBBAN" — is ambiguous, along with a real JSON body
+// TfL returns HTTP 300 (not a real error) when a location, often a hub id
+// like Bank/Monument's "HUBBAN", is ambiguous, along with a real JSON body
 // listing candidate matches instead of journeys. TfL's own field naming
 // isn't fully consistent across API versions, so this covers both known
 // shapes (matches vs disambiguationOptions, id vs parameterValue).
@@ -143,7 +143,7 @@ export interface TflNearbyStopPoint {
 
 // TfL's wrapper shape for this endpoint isn't confirmed against a live
 // response (repeated attempts to verify returned errors unrelated to the
-// app itself) — coded to accept either a bare array or a { stopPoints:
+// app itself), coded to accept either a bare array or a { stopPoints:
 // [...] } wrapper, since other TfL endpoints use both patterns depending
 // on the resource.
 export type TflNearbyStopPointResponse = TflNearbyStopPoint[] | { stopPoints: TflNearbyStopPoint[] };
@@ -169,10 +169,10 @@ export interface TflAdditionalProperty {
 }
 
 // A StopPoint's own details. For a hub-type StopPoint specifically, this
-// should include its constituent child stations — each a real, separately
+// should include its constituent child stations, each a real, separately
 // queryable StopPoint that arrivals data actually attaches to, unlike the
 // hub id itself. The same "parent groups several real children" shape
-// also applies to bus stop pairs specifically — confirmed against a live
+// also applies to bus stop pairs specifically, confirmed against a live
 // response, the stop letter and direction only exist on the children,
 // never on the parent grouping.
 export interface TflStopPointDetail {
@@ -186,7 +186,7 @@ export interface TflStopPointDetail {
 }
 
 // Normalised shape we actually work with internally, one row per
-// (line, status) pair — flattens the array-of-statuses-per-line quirk
+// (line, status) pair, flattens the array-of-statuses-per-line quirk
 // mentioned in the TfL forum thread into something easy to diff against DB rows.
 export interface NormalisedLineStatus {
   lineId: string;
@@ -196,7 +196,7 @@ export interface NormalisedLineStatus {
   statusDescription: string;
   reason: string | null;
   // Best-effort branch identifier, e.g. "Hainault via Newbury Park".
-  // Populated from TfL's affectedRoutes when present; null otherwise —
+  // Populated from TfL's affectedRoutes when present; null otherwise,
   // TfL doesn't guarantee this field is filled in for every disruption.
   branchLabel: string | null;
   affectedStations: { name: string; naptanId: string | null }[];

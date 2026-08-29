@@ -5,7 +5,7 @@ export const journeyRouter = Router();
 
 // GET /journey?from=<stopPointId>&to=<stopPointId>
 // Wraps TfL's Journey Planner, forced to train modes only, and returns a
-// trimmed-down shape — the raw TfL response carries a lot (fares, obstacle
+// trimmed-down shape, the raw TfL response carries a lot (fares, obstacle
 // data, lat/lon path strings) the frontend doesn't need for a simple
 // train-only planner.
 journeyRouter.get("/", async (req, res) => {

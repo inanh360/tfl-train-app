@@ -6,7 +6,7 @@ export const nearbyRouter = Router();
 // Rough average walking pace. TfL's own distance figure is straight-line
 // (and based on lat/lon truncated to 3 decimal places per TfL's own forum
 // notes), not a real walking route, so this whole calculation is a
-// reasonable estimate, not survey-accurate — worth stating plainly rather
+// reasonable estimate, not survey-accurate, worth stating plainly rather
 // than implying more precision than the underlying data actually has.
 const WALK_SPEED_METRES_PER_SECOND = 1.3;
 const MAX_STATIONS_TO_CHECK = 6;
@@ -28,7 +28,7 @@ interface StationResult {
 
 // GET /nearby?lat=&lon=&radius=
 // Finds nearby train stations and, for each, the soonest train you could
-// actually catch once you've walked there — not just the soonest train
+// actually catch once you've walked there, not just the soonest train
 // listed, since a 2-minute train at a station 8 minutes away isn't
 // catchable at all.
 nearbyRouter.get("/", async (req, res) => {

@@ -7,15 +7,15 @@ const privateKey = process.env.VAPID_PRIVATE_KEY;
 if (publicKey && privateKey) {
   // The mailto: address is required by the push protocol so push
   // services (Google's, Mozilla's, Apple's) have a contact point if
-  // something's wrong with how the server is sending pushes — it isn't
+  // something's wrong with how the server is sending pushes, it isn't
   // shown to the person receiving the notification.
   webpush.setVapidDetails("mailto:admin@linestatus.co.uk", publicKey, privateKey);
 } else {
-  console.warn("[push] VAPID keys not set — push notifications are disabled");
+  console.warn("[push] VAPID keys not set, push notifications are disabled");
 }
 
 // Sends a push notification to every device a user has subscribed on.
-// Silently skips if VAPID keys aren't configured, rather than throwing —
+// Silently skips if VAPID keys aren't configured, rather than throwing,
 // push is an enhancement on top of the existing in-app notifications, not
 // something that should ever break the rest of the notification flow if
 // it's misconfigured.
@@ -33,7 +33,7 @@ export async function sendPushToUser(userId: string, title: string, body: string
         );
       } catch (err: unknown) {
         // A 404 or 410 means the browser has invalidated this
-        // subscription (uninstalled, permissions revoked, etc.) — clean
+        // subscription (uninstalled, permissions revoked, etc.), clean
         // it up rather than retrying it forever.
         const statusCode = (err as { statusCode?: number }).statusCode;
         if (statusCode === 404 || statusCode === 410) {

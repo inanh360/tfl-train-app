@@ -21,7 +21,7 @@ export default function DeparturesPage() {
       const data = await api.getFavourites();
       setFavourites(data.filter((f) => f.favouriteType === "STATION"));
     } catch {
-      // Quietly ignore — favourites are a convenience here, not essential
+      // Quietly ignore, favourites are a convenience here, not essential
       // to the page working.
     }
   }, [session]);

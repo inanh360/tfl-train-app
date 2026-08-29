@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    // Keeps session state in sync across tabs and after token refresh —
+    // Keeps session state in sync across tabs and after token refresh,
     // Supabase auto-refreshes the access token before it expires, and this
     // listener is how the rest of the app finds out.
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {

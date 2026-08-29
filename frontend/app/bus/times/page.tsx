@@ -21,7 +21,7 @@ export default function BusTimesPage() {
       const data = await api.getFavourites();
       setFavourites(data.filter((f) => f.favouriteType === "BUS_STOP"));
     } catch {
-      // Quietly ignore — favourites are a convenience here, not essential
+      // Quietly ignore, favourites are a convenience here, not essential
       // to the page working.
     }
   }, [session]);

@@ -8,7 +8,7 @@ type EventWithRelations = LineStatusEvent & {
 };
 
 // TfL's affectedRoutes name often reads like "Epping Underground Station -
-// West Ruislip Underground Station" — strip the repeated station-type
+// West Ruislip Underground Station", strip the repeated station-type
 // suffixes so it displays as "Epping - West Ruislip".
 function cleanBranchLabel(raw: string): string {
   return raw

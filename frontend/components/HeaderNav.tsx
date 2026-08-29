@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 
-// One open dropdown at a time — opening one closes the other, rather than
+// One open dropdown at a time, opening one closes the other, rather than
 // tracking two independent booleans that could both end up open together.
 type OpenDropdown = "travel" | "myline" | null;
 
@@ -211,7 +211,7 @@ export function HeaderNav() {
       </nav>
 
       {/* Desktop: grouped dropdowns instead of one long flat row, for
-          both sections — each with its own grouping since the bus
+          both sections, each with its own grouping since the bus
           section's links don't map onto the train section's groups. */}
       {isBusSection ? (
         <nav className="nav-desktop-groups">
