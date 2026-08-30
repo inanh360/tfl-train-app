@@ -16,7 +16,7 @@ import type {
 
 const TFL_BASE_URL = "https://api.tfl.gov.uk";
 
-// Modes covered by "TfL train only" per the project scope — deliberately
+// Modes covered by "TfL train only" per the project scope, deliberately
 // excludes bus and river, per the product decision to keep journeys
 // single-mode.
 const TRAIN_MODES = ["tube", "dlr", "overground", "elizabeth-line"] as const;
@@ -68,7 +68,7 @@ export async function searchStations(query: string): Promise<TflStopPointMatch[]
 }
 
 // encodeURIComponent turns commas into %2C, but TfL's own disambiguation
-// responses return lat,lon ids with the comma left literal in their URIs —
+// responses return lat,lon ids with the comma left literal in their URIs,
 // encoding it changes what TfL receives and can turn a valid retry into a
 // 404. This keeps normal encoding for everything except commas.
 function encodeStopId(id: string): string {
@@ -77,7 +77,7 @@ function encodeStopId(id: string): string {
 
 // TfL's StopPoint Search legitimately returns "hub" ids (e.g. "HUBBAN" for
 // Bank/Monument, combining multiple physical platforms/lines under one
-// interchange id) — but the Journey Planner endpoint doesn't reliably
+// interchange id), but the Journey Planner endpoint doesn't reliably
 // accept those same hub ids as a location parameter, instead falling back
 // to fuzzy text-matching against unrelated place names. Resolving to the
 // hub's coordinates first sidesteps this: TfL's own disambiguation
@@ -93,7 +93,7 @@ async function resolveJourneyParam(id: string): Promise<string> {
   const res = await fetch(url.toString());
   if (!res.ok) {
     // If the hub lookup itself fails, fall back to the original id rather
-    // than blocking the whole request — worst case we're back to the
+    // than blocking the whole request, worst case we're back to the
     // original 300/fuzzy-match behaviour, not a hard failure.
     return id;
   }
@@ -113,7 +113,7 @@ async function fetchJourney(fromId: string, toId: string): Promise<{ status: num
 
   const res = await fetch(url.toString());
   // TfL uses 300 as a real, parseable response (disambiguation options),
-  // not a failure — only treat genuine error statuses as fatal here.
+  // not a failure, only treat genuine error statuses as fatal here.
   if (!res.ok && res.status !== 300) {
     throw new Error(`TfL journey planner request failed: ${res.status} ${res.statusText}`);
   }
@@ -122,7 +122,7 @@ async function fetchJourney(fromId: string, toId: string): Promise<{ status: num
 }
 
 // Reads the first candidate id out of whichever shape TfL actually sent
-// back — the array key (matches vs disambiguationOptions) and the id
+// back, the array key (matches vs disambiguationOptions) and the id
 // field name (id vs parameterValue) both vary in practice.
 function firstDisambiguationId(side: TflDisambiguationSide | undefined): string | undefined {
   const options = side?.matches ?? side?.disambiguationOptions ?? [];
@@ -134,9 +134,9 @@ function firstDisambiguationId(side: TflDisambiguationSide | undefined): string 
 // (per the product decision to keep journeys single-mode rather than
 // mixing in bus legs).
 //
-// TfL sometimes responds with HTTP 300 even for a specific, valid id —
+// TfL sometimes responds with HTTP 300 even for a specific, valid id,
 // notably hub ids like "HUBBAN" (Bank/Monument) that cover more than one
-// physical station — along with a real body listing disambiguation
+// physical station, along with a real body listing disambiguation
 // options instead of journeys. Rather than surface that as an error, this
 // picks the top-ranked match TfL offers for whichever side is ambiguous
 // and retries once with the resolved id.
@@ -155,7 +155,7 @@ export async function planJourney(fromId: string, toId: string): Promise<TflJour
 
   if (resolvedFrom === resolvedFromId && resolvedTo === resolvedToId) {
     // TfL gave us a 300 but no usable disambiguation options to resolve it
-    // with — nothing more we can do automatically.
+    // with, nothing more we can do automatically.
     throw new Error("TfL journey planner returned an ambiguous location with no resolvable match");
   }
 
@@ -165,7 +165,7 @@ export async function planJourney(fromId: string, toId: string): Promise<TflJour
 
 // Flattens TfL's nested shape into one row per (line, status).
 // A line can carry more than one simultaneous lineStatuses entry (seen in
-// practice on Metropolitan — Part Suspended + Special Service at once), so
+// practice on Metropolitan, Part Suspended + Special Service at once), so
 // this returns an array per line, not a single object.
 export function normaliseLineStatuses(lines: TflLine[]): NormalisedLineStatus[] {
   const normalised: NormalisedLineStatus[] = [];
@@ -217,8 +217,8 @@ function haversineMetres(lat1: number, lon1: number, lat2: number, lon2: number)
 // built against it, breaking both this and the bus equivalent below at
 // once. Rather than depend on TfL having any dedicated "nearby" endpoint
 // at all, both now fetch and cache the full stop list once via
-// /StopPoint/Mode/{modes} — an endpoint already confirmed working
-// elsewhere in this codebase — and compute distance ourselves. Station
+// /StopPoint/Mode/{modes}, an endpoint already confirmed working
+// elsewhere in this codebase, and compute distance ourselves. Station
 // and stop locations essentially never change, so a long cache is
 // reasonable here in a way it wouldn't be for live status or arrivals.
 const STOP_CACHE_MS = 24 * 60 * 60 * 1000;
@@ -234,7 +234,7 @@ async function fetchAllStopsForModes(modes: string, page?: number): Promise<TflN
 
   // This is a genuinely large payload (thousands of bus stops
   // especially), and none of the fetch calls in this file have ever had
-  // an explicit timeout — meaning a slow or hanging TfL response here
+  // an explicit timeout, meaning a slow or hanging TfL response here
   // would leave the request stuck indefinitely with no error at all,
   // rather than failing visibly. 20 seconds is generous for a one-time,
   // long-cached fetch like this one.
@@ -245,12 +245,12 @@ async function fetchAllStopsForModes(modes: string, page?: number): Promise<TflN
     const res = await fetch(url.toString(), { signal: controller.signal });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(`TfL stop list request failed for mode(s) ${modes}: ${res.status} ${res.statusText} — ${body}`);
+      throw new Error(`TfL stop list request failed for mode(s) ${modes}: ${res.status} ${res.statusText}, ${body}`);
     }
     const parsed = await res.json();
     if (Array.isArray(parsed)) return parsed as TflNearbyStopPoint[];
 
-    // Not a bare array as assumed — try the common wrapper shapes seen
+    // Not a bare array as assumed, try the common wrapper shapes seen
     // elsewhere in this codebase before giving up and logging the real
     // shape so this can be fixed against actual evidence rather than
     // another guess.
@@ -275,7 +275,7 @@ async function getAllTrainStops(): Promise<TflNearbyStopPoint[]> {
 
   const raw = (await fetchAllStopsForModes(TRAIN_MODES.join(","))) as (TflNearbyStopPoint & { stopType?: string })[];
   // This endpoint returns platform-level entries alongside real stations
-  // for a mode like tube — filtered here to station-level ones, same
+  // for a mode like tube, filtered here to station-level ones, same
   // filtering used elsewhere in this file for the same reason.
   const stations = raw.filter((s) => s.stopType && STATION_STOP_TYPES.has(s.stopType));
   trainStopCache = { data: stations, fetchedAt: Date.now() };
@@ -292,10 +292,10 @@ async function getAllBusStops(): Promise<TflNearbyStopPoint[]> {
   // documented way to know the total page count up front. Fetching one
   // page at a time sequentially took long enough on a live request that
   // Cloudflare's own proxy timed out waiting for a response (a 524),
-  // even though the server was still working — so this fetches several
+  // even though the server was still working, so this fetches several
   // pages in parallel per round instead, only stopping once a round
   // contains a short page (the real signal that pagination has ended).
-  // Capped at 30 pages (30,000 stops) as a sanity limit — London has
+  // Capped at 30 pages (30,000 stops) as a sanity limit, London has
   // roughly 19,000 bus stops, so this leaves real headroom.
   const PAGE_SIZE = 1000;
   const MAX_PAGES = 30;
@@ -314,7 +314,7 @@ async function getAllBusStops(): Promise<TflNearbyStopPoint[]> {
       console.log(`[nearby-bus] page ${batchPages[i]} returned ${batch.length} stops (running total ${all.length})`);
       if (batch.length < PAGE_SIZE) {
         hitShortPage = true;
-        break; // any pages after a short one don't need fetching — that was the last page of real data
+        break; // any pages after a short one don't need fetching, that was the last page of real data
       }
     }
 
@@ -336,7 +336,7 @@ export async function warmNearbyStopCaches(): Promise<void> {
     await Promise.all([getAllTrainStops(), getAllBusStops()]);
     console.log("[nearby] stop caches warmed on startup");
   } catch (err) {
-    // Not fatal — the caches will just populate lazily on first real
+    // Not fatal, the caches will just populate lazily on first real
     // request instead, same as before this existed.
     console.error("[nearby] failed to warm stop caches on startup", err);
   }
@@ -369,7 +369,7 @@ export async function findNearbyBusStops(lat: number, lon: number, radiusMetres 
 // hubNaptanCode linking them together. This resolves to that hub id when
 // one exists, so arrivals cover the whole station rather than whichever
 // single fragment happened to be selected. Falls back to the original id
-// if the lookup fails or there's no hub — never worse than before.
+// if the lookup fails or there's no hub, never worse than before.
 async function fetchStopPointDetail(id: string): Promise<TflStopPointDetail | null> {
   const url = new URL(`${TFL_BASE_URL}/StopPoint/${encodeURIComponent(id)}`);
   appendAppKey(url);
@@ -398,7 +398,7 @@ async function fetchArrivalsForId(id: string): Promise<TflArrivalPrediction[]> {
 // Large multi-line interchanges (Stratford, Bank, etc.) are often split
 // across several separate StopPoint ids in TfL's data, each covering only
 // some of the lines. Querying the shared hub id directly returns nothing
-// — a hub is a grouping concept, not a real place trains arrive at — so
+//, a hub is a grouping concept, not a real place trains arrive at, so
 // this instead fetches the hub's child stations and merges arrivals
 // across all of them, which is where the actual per-line data lives.
 export async function getArrivals(stationId: string): Promise<TflArrivalPrediction[]> {
@@ -415,7 +415,7 @@ export async function getArrivals(stationId: string): Promise<TflArrivalPredicti
   console.log(`[arrivals] ${stationId} -> hub ${hubId} -> ${children.length} children`);
 
   if (children.length === 0) {
-    // No children found — fall back to the original id rather than
+    // No children found, fall back to the original id rather than
     // returning nothing.
     console.log(`[arrivals] no children found for hub ${hubId}, falling back to ${stationId}`);
     return (await fetchArrivalsForId(stationId)).sort((a, b) => a.timeToStation - b.timeToStation);
@@ -471,7 +471,7 @@ export interface LineBranch {
 // response is orderedLineRoutes (a name plus an ordered list of station
 // ids per branch). A different part of the same response,
 // stopPointSequences, has been reported on TfL's own forum as not
-// reliably lining up by index with orderedLineRoutes — so rather than
+// reliably lining up by index with orderedLineRoutes, so rather than
 // trust that part for station names, this looks names up from
 // getLineStopPoints above instead, which is already proven reliable
 // elsewhere in this app.
@@ -493,7 +493,7 @@ export async function getLineBranches(lineId: string): Promise<LineBranch[]> {
   return routes.map((route) => ({
     // Confirmed live: TfL's branch names literally contain the raw HTML
     // entity "&harr;" (a left-right arrow) rather than the actual
-    // character, e.g. "Ealing Broadway &harr; Epping" — decoded here
+    // character, e.g. "Ealing Broadway &harr; Epping", decoded here
     // rather than displayed as-is.
     name: route.name.replace(/&harr;/g, "↔").replace(/&amp;/g, "&"),
     stations: route.naptanIds.map((id) => ({ id, name: nameById.get(id) ?? id })),
@@ -504,7 +504,7 @@ export async function getLineBranches(lineId: string): Promise<LineBranch[]> {
 // searchStations (train modes) since the two are deliberately different
 // sections of the app. Arrivals themselves reuse the existing
 // getArrivals function unchanged, since that endpoint isn't mode specific
-// — it returns whatever's predicted for the given stop id regardless of
+//, it returns whatever's predicted for the given stop id regardless of
 // whether it's a train station or a bus stop.
 export async function searchBusStops(query: string): Promise<TflStopPointMatch[]> {
   const url = new URL(`${TFL_BASE_URL}/StopPoint/Search/${encodeURIComponent(query)}`);
@@ -526,7 +526,7 @@ export async function searchBusStops(query: string): Promise<TflStopPointMatch[]
   return data.matches.filter((m) => m.modes.length === 1 && m.modes[0] === "bus");
 }
 
-// Enriches a bus stop search result with its stop letter — only available
+// Enriches a bus stop search result with its stop letter, only available
 // on the full StopPoint detail, not the lightweight search response, so
 // this is a second call per result. Confirmed against a live response:
 // the field is genuinely called "stopLetter" on the full detail.
@@ -546,7 +546,7 @@ export interface ResolvedBusStop {
 // sometimes returns a grouped parent id covering several real physical
 // stops (e.g. both directions of a stop pair), and the stop letter and
 // direction only exist on the children underneath that parent, never on
-// the parent itself — asking the parent directly for this data silently
+// the parent itself, asking the parent directly for this data silently
 // returns nothing, which is what an earlier, narrower version of this
 // function was doing wrong. If the id turns out to already be an
 // individual stop with no children, this just returns that one stop's own
@@ -594,7 +594,7 @@ export interface StationDetail {
   lines: { id: string; name: string }[];
 }
 
-// Full detail for a dedicated station page — its name and which TfL
+// Full detail for a dedicated station page, its name and which TfL
 // train lines actually serve it. A shared station can have National Rail
 // services listed in the same "lines" array TfL returns, so this filters
 // to TRAIN_MODES only, same set used elsewhere in this file, rather than

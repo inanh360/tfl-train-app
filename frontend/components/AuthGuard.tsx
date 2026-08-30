@@ -9,7 +9,7 @@ const PUBLIC_PATHS = ["/login", "/", "/journey", "/privacy", "/auth/callback", "
 // prefix rather than listed individually.
 const PUBLIC_PATH_PREFIXES = ["/station/"];
 // Dynamic line pages (/central, /district, etc) were never actually
-// added to PUBLIC_PATHS above, despite clearly being meant to be public —
+// added to PUBLIC_PATHS above, despite clearly being meant to be public,
 // each one has its own logic that only asks for login when someone tries
 // to favourite it, implying the page itself should be viewable without
 // an account. Rather than list all ~19 line ids by hand (fragile, easy
@@ -33,7 +33,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [loading, session, isPublicPath, router]);
 
-  // Public pages render immediately regardless of auth-loading state — they
+  // Public pages render immediately regardless of auth-loading state, they
   // don't need to know whether you're signed in to show useful content.
   if (isPublicPath) {
     return <>{children}</>;

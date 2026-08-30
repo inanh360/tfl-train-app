@@ -209,7 +209,7 @@ export const api = {
     request<ArrivalPrediction[]>(`/stations/${encodeURIComponent(stationId)}/arrivals`),
   getStationDetail: (stationId: string) => request<StationDetail>(`/stations/${encodeURIComponent(stationId)}`),
 
-  // Bus section — deliberately separate from the train endpoints above,
+  // Bus section, deliberately separate from the train endpoints above,
   // this app treats buses as their own distinct area rather than mixing
   // modes together.
   searchBusStops: (query: string) => request<BusStopMatch[]>(`/bus/search?q=${encodeURIComponent(query)}`),

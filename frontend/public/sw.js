@@ -7,7 +7,7 @@ self.addEventListener("push", (event) => {
     if (event.data) data = event.data.json();
   } catch {
     // Fall back to the default above if the payload isn't valid JSON for
-    // some reason — better to show a generic notification than none at all.
+    // some reason, better to show a generic notification than none at all.
   }
 
   event.waitUntil(

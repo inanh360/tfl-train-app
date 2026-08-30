@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "Check live London Underground line statuses, delays, disruptions and departures. Plan your journey and see the latest information for every Tube line.",
   // iOS specifically looks for these to give a proper full-screen,
   // installed-app feel rather than treating it as just a bookmarked
-  // website — the manifest file alone doesn't cover iOS Safari fully.
+  // website, the manifest file alone doesn't cover iOS Safari fully.
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

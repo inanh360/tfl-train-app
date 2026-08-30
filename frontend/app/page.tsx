@@ -19,7 +19,7 @@ export default function DashboardPage() {
 
   const load = useCallback(async () => {
     try {
-      // Favourites are personal — only fetch them if actually signed in, so
+      // Favourites are personal, only fetch them if actually signed in, so
       // a logged-out visitor can still see live status without a 401.
       const [linesData, favouritesData] = await Promise.all([
         api.getLines(),
@@ -43,7 +43,7 @@ export default function DashboardPage() {
   // Lets someone glance at an open tab and see there's a problem without
   // switching to it. Counts lines actually disrupted, not raw event rows,
   // since one line can carry several simultaneous events for different
-  // branches — that would inflate the number in a way that doesn't match
+  // branches, that would inflate the number in a way that doesn't match
   // what a person actually cares about ("how many lines are affected").
   useEffect(() => {
     if (!lines) return;
@@ -79,7 +79,7 @@ export default function DashboardPage() {
   }
 
   // Order: anything actively disrupted first, then Good Service, then
-  // Service Closed last — the most useful information belongs at the top.
+  // Service Closed last, the most useful information belongs at the top.
   const sorted = [...lines].sort((a, b) => severityRank(a) - severityRank(b));
 
   return (

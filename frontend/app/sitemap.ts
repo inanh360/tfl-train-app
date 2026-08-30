@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-// TfL line ids this app covers — kept as a plain list here rather than a
+// TfL line ids this app covers, kept as a plain list here rather than a
 // live API call, since a sitemap should be fast and doesn't need to be
 // perfectly real time.
 const LINE_IDS = [

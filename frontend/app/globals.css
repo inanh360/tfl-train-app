@@ -47,7 +47,7 @@ body.bus-theme {
   /* Redefining --primary here (rather than changing every component
      individually) means every existing var(--primary) reference across
      the whole app automatically becomes red while on /bus, and reverts
-     automatically on leaving it — one override point, not one per page. */
+     automatically on leaving it, one override point, not one per page. */
   --primary: var(--bus-accent);
   --bg-raised: var(--bus-bg-raised);
   --bg-raised-hover: var(--bus-bg-raised-hover);
@@ -89,7 +89,7 @@ button {
   }
 }
 
-/* Pulse for actively-disrupted status dots — draws the eye without being
+/* Pulse for actively-disrupted status dots, draws the eye without being
    a full flashing-alarm effect. */
 @keyframes pulse {
   0%,
