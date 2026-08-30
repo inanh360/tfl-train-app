@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { api, type ArrivalPrediction, type StationMatch, type Favourite } from "@/lib/api";
 import { StationAutocomplete } from "@/components/StationAutocomplete";
 import { useAuth } from "@/lib/auth-context";
@@ -125,7 +126,12 @@ export default function DeparturesPage() {
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>{station.name}</span>
+              <Link
+                href={`/station/${encodeURIComponent(station.id)}`}
+                style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", textDecoration: "none" }}
+              >
+                {station.name}
+              </Link>
               {session && (
                 <button
                   onClick={toggleFavourite}
