@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { api, type Line, type Favourite, type ArrivalPrediction } from "@/lib/api";
 import { LineRow, severityRank } from "@/components/LineRow";
 
@@ -136,7 +137,12 @@ function StationFavouriteRow({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div style={{ fontSize: 14, fontWeight: 600 }}>{favourite.refLabel}</div>
+        <Link
+          href={`/station/${encodeURIComponent(favourite.refId)}`}
+          style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", textDecoration: "none" }}
+        >
+          {favourite.refLabel}
+        </Link>
         <button
           onClick={onRemove}
           style={{
