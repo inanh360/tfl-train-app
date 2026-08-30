@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { searchStations, getArrivals } from "../services/tflClient";
+import { searchStations, getArrivals, getStationDetail } from "../services/tflClient";
 
 export const stationsRouter = Router();
 
-// GET /stations/search?q=farring, used by the journey planner's
+// GET /stations/search?q=farring — used by the journey planner's
 // from/to autocomplete fields.
 stationsRouter.get("/search", async (req, res) => {
   const query = req.query.q;
@@ -28,7 +28,21 @@ stationsRouter.get("/search", async (req, res) => {
   }
 });
 
-// GET /stations/:id/arrivals, live "next train" predictions for a
+// GET /stations/:id — station name and which TfL lines serve it, used by
+// the dedicated station page. Registered after /search specifically —
+// as a wildcard, this would otherwise incorrectly match a request to
+// /stations/search itself, treating "search" as if it were a station id.
+stationsRouter.get("/:id", async (req, res) => {
+  try {
+    const detail = await getStationDetail(req.params.id);
+    res.json(detail);
+  } catch (err) {
+    console.error("[stations/:id] failed", err);
+    res.status(502).json({ error: "Failed to load station detail" });
+  }
+});
+
+// GET /stations/:id/arrivals — live "next train" predictions for a
 // specific station, used by the departures board page.
 stationsRouter.get("/:id/arrivals", async (req, res) => {
   try {
@@ -36,6 +50,7 @@ stationsRouter.get("/:id/arrivals", async (req, res) => {
     res.json(
       predictions.map((p) => ({
         line: p.lineName,
+        lineId: p.lineId,
         platform: p.platformName,
         destination: p.destinationName,
         minutesAway: Math.round(p.timeToStation / 60),

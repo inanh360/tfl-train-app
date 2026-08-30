@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import Link from "next/link";
 import { api, type Line, type LineStation, type LineBranch, type Favourite } from "@/lib/api";
 import { StatusDot } from "@/components/StatusDot";
 import { useAuth } from "@/lib/auth-context";
@@ -9,7 +10,7 @@ import { useRouter } from "next/navigation";
 // Confirmed against current sources as of 2026: these run through the
 // night on Friday and Saturday as part of the Night Tube (five
 // Underground lines, plus the Overground's Windrush line). This is
-// general, static reference info rather than live data on purpose, TfL's
+// general, static reference info rather than live data on purpose — TfL's
 // dedicated timetable endpoint for exact per-station times has real,
 // long-standing reliability problems reported on their own forum, not
 // worth depending on for something this simple.
@@ -34,7 +35,7 @@ export default function LinePage({ params }: { params: Promise<{ lineId: string 
 
     api.getLineStations(lineId).then(setStations).catch(() => setStations([]));
     // Kept separate from the flat station fetch above rather than
-    // replacing it, if the branch breakdown fails or comes back empty
+    // replacing it — if the branch breakdown fails or comes back empty
     // for any reason, the page still has the flat list to fall back to
     // rather than showing nothing.
     api.getLineBranches(lineId).then(setBranches).catch(() => setBranches([]));
@@ -82,7 +83,7 @@ export default function LinePage({ params }: { params: Promise<{ lineId: string 
   return (
     <div>
       {/* Themed header block using the line's own colour as an accent,
-          not the site's default blue, the whole point of a dedicated
+          not the site's default blue — the whole point of a dedicated
           per-line page is that it feels branded to that line. */}
       <div
         style={{
@@ -177,17 +178,21 @@ export default function LinePage({ params }: { params: Promise<{ lineId: string 
                 <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>{branch.name}</h3>
                 <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
                   {branch.stations.map((station, i) => (
-                    <div
+                    <Link
                       key={station.id}
+                      href={`/station/${encodeURIComponent(station.id)}`}
                       style={{
+                        display: "block",
                         padding: "10px 14px",
                         borderBottom: i < branch.stations.length - 1 ? "1px solid var(--border)" : "none",
                         background: "var(--bg-raised)",
                         fontSize: 13,
+                        color: "var(--text)",
+                        textDecoration: "none",
                       }}
                     >
                       {station.name}
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -196,7 +201,7 @@ export default function LinePage({ params }: { params: Promise<{ lineId: string 
         )}
 
         {/* Falls back to a flat, unbranched list if the branch breakdown
-            didn't come back with anything, still shows every station on
+            didn't come back with anything — still shows every station on
             the line, just without the start-to-finish grouping. */}
         {stations && branches && branches.length === 0 && (
           <>
@@ -205,17 +210,21 @@ export default function LinePage({ params }: { params: Promise<{ lineId: string 
             ) : (
               <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
                 {stations.map((station, i) => (
-                  <div
+                  <Link
                     key={station.id}
+                    href={`/station/${encodeURIComponent(station.id)}`}
                     style={{
+                      display: "block",
                       padding: "10px 14px",
                       borderBottom: i < stations.length - 1 ? "1px solid var(--border)" : "none",
                       background: "var(--bg-raised)",
                       fontSize: 13,
+                      color: "var(--text)",
+                      textDecoration: "none",
                     }}
                   >
                     {station.commonName}
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

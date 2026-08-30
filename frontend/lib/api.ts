@@ -106,10 +106,17 @@ export interface BusTime {
 
 export interface ArrivalPrediction {
   line: string;
+  lineId: string;
   platform: string;
   destination: string;
   minutesAway: number;
   secondsAway: number;
+}
+
+export interface StationDetail {
+  id: string;
+  name: string;
+  lines: { id: string; name: string }[];
 }
 
 export interface NearbyTrain {
@@ -200,8 +207,9 @@ export const api = {
 
   getArrivals: (stationId: string) =>
     request<ArrivalPrediction[]>(`/stations/${encodeURIComponent(stationId)}/arrivals`),
+  getStationDetail: (stationId: string) => request<StationDetail>(`/stations/${encodeURIComponent(stationId)}`),
 
-  // Bus section, deliberately separate from the train endpoints above,
+  // Bus section — deliberately separate from the train endpoints above,
   // this app treats buses as their own distinct area rather than mixing
   // modes together.
   searchBusStops: (query: string) => request<BusStopMatch[]>(`/bus/search?q=${encodeURIComponent(query)}`),
