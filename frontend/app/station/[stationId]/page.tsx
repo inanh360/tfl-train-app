@@ -3,6 +3,31 @@
 import { useEffect, useState, use } from "react";
 import { api, type StationDetail, type ArrivalPrediction, type Line } from "@/lib/api";
 
+// TfL's raw platform names typically look like "Westbound - Platform 7"
+// or "Southbound - Platform 1", direction first. This reformats to
+// "Platform 7 - Westbound" (number first, which is how a person
+// physically reads platform signage), and pulls out the number itself so
+// platforms can be sorted numerically rather than in whatever order TfL
+// happened to list them. Falls back to the raw text unchanged if it
+// doesn't match this pattern, since not every station's data is formatted
+// the same way.
+function formatPlatform(raw: string): { display: string; sortKey: number } {
+  const match = raw.match(/^(\w+)\s*-\s*Platform\s*(\d+)/i);
+  if (match) {
+    const [, direction, number] = match;
+    return { display: `Platform ${number} - ${direction}`, sortKey: parseInt(number, 10) };
+  }
+
+  // Handles a bare "Platform 3" with no direction too, still worth
+  // sorting numerically even without a direction to show.
+  const numberOnly = raw.match(/Platform\s*(\d+)/i);
+  if (numberOnly) {
+    return { display: raw, sortKey: parseInt(numberOnly[1], 10) };
+  }
+
+  return { display: raw, sortKey: Number.MAX_SAFE_INTEGER };
+}
+
 export default function StationPage({ params }: { params: Promise<{ stationId: string }> }) {
   const { stationId } = use(params);
 
@@ -39,7 +64,9 @@ export default function StationPage({ params }: { params: Promise<{ stationId: s
 
   const colourByLineId = new Map(lines.map((l) => [l.id, l.colourHex]));
 
-  // Grouped by platform, each platform's own list sorted soonest first.
+  // Grouped by platform, each platform's own list sorted soonest first,
+  // and the groups themselves sorted numerically by platform number
+  // rather than left in whatever order TfL's data happened to list them.
   const byPlatform = new Map<string, ArrivalPrediction[]>();
   for (const arrival of arrivals ?? []) {
     const key = arrival.platform || "Platform not specified";
@@ -94,9 +121,12 @@ export default function StationPage({ params }: { params: Promise<{ stationId: s
 
       {arrivals && arrivals.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {[...byPlatform.entries()].map(([platform, predictions]) => (
-            <div key={platform}>
-              <h2 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>{platform}</h2>
+          {[...byPlatform.entries()]
+            .map(([platform, predictions]) => ({ ...formatPlatform(platform), predictions }))
+            .sort((a, b) => a.sortKey - b.sortKey)
+            .map(({ display, predictions }) => (
+              <div key={display}>
+                <h2 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>{display}</h2>
               <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
                 {predictions.map((arrival, i) => (
                   <div
